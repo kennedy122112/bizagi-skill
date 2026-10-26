@@ -1,0 +1,46 @@
+{
+  "name": "Solicitud de compra",
+  "doc": "Un colaborador solicita un bien; su jefe aprueba, Compras cotiza y Finanzas paga al proveedor.",
+  "pools": [
+    {"name": "Empresa", "lanes": ["Solicitante", "Jefe de área", "Compras", "Finanzas"]},
+    {"name": "Proveedor", "blackbox": true}
+  ],
+  "nodes": [
+    {"id": "inicio", "type": "start", "name": "Necesidad de compra", "lane": "Solicitante"},
+    {"id": "registrar", "type": "userTask", "name": "Registrar solicitud", "lane": "Solicitante",
+     "doc": "Completa el formulario con el bien, la cantidad y la justificación."},
+    {"id": "aprobar", "type": "userTask", "name": "Aprobar solicitud", "lane": "Jefe de área"},
+    {"id": "gw_aprob", "type": "exclusive", "name": "¿Aprobada?", "lane": "Jefe de área"},
+    {"id": "corregir", "type": "userTask", "name": "Corregir solicitud", "lane": "Solicitante"},
+    {"id": "rechazo", "type": "end", "name": "Solicitud rechazada", "lane": "Jefe de área"},
+    {"id": "cotizar", "type": "sendTask", "name": "Solicitar cotización", "lane": "Compras"},
+    {"id": "espera", "type": "messageCatch", "name": "Cotización recibida", "lane": "Compras"},
+    {"id": "orden", "type": "userTask", "name": "Emitir orden de compra", "lane": "Compras"},
+    {"id": "par1", "type": "parallel", "lane": "Compras"},
+    {"id": "recibir", "type": "manualTask", "name": "Recibir bien", "lane": "Compras"},
+    {"id": "pagar", "type": "serviceTask", "name": "Programar pago", "lane": "Finanzas"},
+    {"id": "par2", "type": "parallel", "lane": "Finanzas"},
+    {"id": "fin", "type": "end", "name": "Compra completada", "lane": "Finanzas"}
+  ],
+  "flows": [
+    "inicio -> registrar",
+    "registrar -> aprobar",
+    "aprobar -> gw_aprob",
+    {"from": "gw_aprob", "to": "cotizar", "name": "Sí", "default": true},
+    "gw_aprob -> corregir : Observada",
+    "gw_aprob -> rechazo : No",
+    "corregir -> aprobar",
+    "cotizar -> espera",
+    "espera -> orden",
+    "orden -> par1",
+    "par1 -> recibir",
+    "par1 -> pagar",
+    "recibir -> par2",
+    "pagar -> par2",
+    "par2 -> fin"
+  ],
+  "messageFlows": [
+    "cotizar -> Proveedor : Pedido de cotización",
+    "Proveedor -> espera : Cotización"
+  ]
+}
