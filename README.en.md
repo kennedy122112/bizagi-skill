@@ -105,7 +105,7 @@ The installer keeps **a single clone** in `~/.agents/skills/bizagi`, the standar
 | Cursor | Reads `~/.agents/skills` |
 | Claude Code | Link `~/.claude/skills/bizagi` to the same clone |
 
-To **update**, run the same command again (it runs `git pull`). To **uninstall**: `.\install.ps1 -Uninstall` or `bash install.sh --uninstall`. Any previous copy is moved to the temp folder, not deleted.
+To **update**, run the same command again (it runs `git pull`). To **uninstall**: `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.ps1))) -Uninstall` in PowerShell, or `bash install.sh --uninstall`. Any previous copy is moved to the temp folder, not deleted.
 
 If your agent doesn't support skills, add this to your project's `AGENTS.md`:
 > *"To model Bizagi processes, follow `~/.agents/skills/bizagi/SKILL.md`."*

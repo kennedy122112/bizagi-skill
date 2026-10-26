@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Instala el skill "bizagi" para todos tus agentes de IA (Windows).
 
@@ -12,7 +12,7 @@
   irm https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.ps1 | iex
 
 .EXAMPLE
-  .\install.ps1 -Uninstall
+  & ([scriptblock]::Create((irm https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.ps1))) -Uninstall
 #>
 param(
     [switch]$Uninstall,
