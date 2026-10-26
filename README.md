@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.2.0-0a7bbb?style=for-the-badge">
+  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.3.0-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agentes" src="https://img.shields.io/badge/agentes-3-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -49,6 +49,12 @@ Y con plazos, excepciones, documentos y sistemas, por ejemplo una atención de r
   <img alt="Atención de reclamos importada en Bizagi Modeler" src="docs/bizagi-reclamos.jpg" width="100%">
 </p>
 
+## 📄 Documento Word
+
+`docx` genera el entregable listo para revisar o firmar: una ficha con código, versión y responsables, el objetivo, los participantes, el **diagrama en una página horizontal** (vectorial, con imagen de respaldo), la tabla de actividades con entradas y salidas, el flujo, las reglas de decisión, las excepciones y plazos, los documentos y sistemas, y las interacciones con externos. Usa solo Python, sin dependencias.
+
+Ejemplos: [atencion-reclamos.docx](docs/atencion-reclamos.docx) · [solicitud-compra.docx](docs/solicitud-compra.docx)
+
 ## 🧰 Comandos
 
 | Comando | Para qué |
@@ -58,6 +64,7 @@ Y con plazos, excepciones, documentos y sistemas, por ejemplo una atención de r
 | `validate spec.json\|modelo.bpmn` | Reglas de modelado: inicios y fines, compuertas sin etiquetas, nodos inalcanzables… |
 | `preview spec.json\|modelo.bpmn -o vista.svg` | Diagrama SVG para revisar sin abrir Bizagi |
 | `doc spec.json\|modelo.bpmn -o doc.md` | Documentación del proceso: roles, actividades y secuencia |
+| `docx spec.json\|modelo.bpmn -o proceso.docx` | **Documento Word**: ficha, diagrama, actividades, decisiones, excepciones, documentos y externos |
 
 **Soporta:**
 - Pools y carriles, incluidos pools externos (caja negra), y flujos de mensaje.

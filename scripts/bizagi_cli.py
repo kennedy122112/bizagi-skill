@@ -8,6 +8,7 @@ Comandos:
   validate <spec.json|modelo.bpmn>                         reglas de modelado
   preview  <spec.json|modelo.bpmn> -o vista.svg            diagrama SVG para revisar sin abrir Bizagi
   doc      <spec.json|modelo.bpmn> [-o doc.md]             documentación Markdown del proceso
+  docx     <spec.json|modelo.bpmn> -o doc.docx             documento Word con diagrama y tablas
 """
 import argparse
 import html
@@ -20,7 +21,7 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict, deque
 from pathlib import Path
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
 NS = {
     "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",
@@ -179,6 +180,7 @@ def normalize_spec(raw):
     errors = []
     spec = {"name": raw.get("name") or "Proceso",
             "doc": raw.get("doc") or raw.get("documentation") or "",
+            "meta": {k: str(v) for k, v in (raw.get("meta") or {}).items()},
             "pools": [], "nodes": [], "flows": [], "messageFlows": [], "associations": [],
             "_errors": errors, "_warnings": []}
     ids = IdMaker()
@@ -1229,23 +1231,30 @@ BOUNDARY_ES = {"timer": "tiempo", "messageCatch": "mensaje", "signalCatch": "se�
                "conditional": "condición", "errorCatch": "error"}
 
 
-def render_doc(spec, geo):
+def summarize(spec, geo):
+    """Contenido documental del proceso, común a Markdown y Word."""
     nodes = {n["id"]: n for n in spec["nodes"]}
-    title = lambda i: nodes[i]["name"] or nodes[i]["orig"]
+    pools = {p["id"]: p for p in spec["pools"]}
+    title = lambda i: (nodes[i]["name"] or nodes[i]["orig"]) if i in nodes else pools[i]["name"]
+    who = lambda n: n["lane"] or pools[n["pool"]]["name"]
     out_f = defaultdict(list)
     for f in spec["flows"]:
         out_f[f["source"]].append(f)
     ins, outs, notes = defaultdict(list), defaultdict(list), defaultdict(list)
+    used_in, made_by = defaultdict(list), defaultdict(list)
+    note_rows = []
     for a in spec["associations"]:
         s, t = nodes[a["source"]], nodes[a["target"]]
         if s["type"] in DATA_TYPES:
             ins[t["id"]].append(s["name"])
+            used_in[s["id"]].append(title(t["id"]))
         elif t["type"] in DATA_TYPES:
             outs[s["id"]].append(t["name"])
-        elif s["type"] == "annotation":
-            notes[t["id"]].append(s["text"])
-        elif t["type"] == "annotation":
-            notes[s["id"]].append(t["text"])
+            made_by[t["id"]].append(title(s["id"]))
+        elif "annotation" in (s["type"], t["type"]):
+            note, other = (s, t) if s["type"] == "annotation" else (t, s)
+            notes[other["id"]].append(note["text"])
+            note_rows.append((title(other["id"]), note["text"]))
     boundary_of = defaultdict(list)
     for n in spec["nodes"]:
         if n["attachedTo"]:
@@ -1253,53 +1262,391 @@ def render_doc(spec, geo):
     order = sorted((i for i in geo["nodes"] if kind(nodes[i]["type"]) != "artifact"
                     and not nodes[i]["attachedTo"]),
                    key=lambda i: (geo["nodes"][i][0], geo["nodes"][i][1]))
-    pools = {p["id"]: p for p in spec["pools"]}
-    md = [f"# {spec['name']}", ""]
-    if spec["doc"]:
-        md += [spec["doc"], ""]
-    md += ["## Participantes", ""]
+    S = {"name": spec["name"], "doc": spec["doc"], "meta": spec.get("meta", {}),
+         "participants": [], "activities": [], "sequence": [], "decisions": [],
+         "exceptions": [], "data": [], "messages": [], "notes": note_rows}
     for p in spec["pools"]:
-        roles = ", ".join(p["lanes"]) if p["lanes"] else ("externo" if p["blackbox"] else "—")
-        md.append(f"- **{p['name']}**: {roles}")
-    md += ["", "## Actividades", "",
-           "| # | Actividad | Tipo | Responsable | Entradas | Salidas | Descripción |",
-           "|---|---|---|---|---|---|---|"]
-    k = 0
-    cell = lambda s: (s or "").replace("|", "/").replace("\n", " ")
+        roles = ", ".join(p["lanes"]) if p["lanes"] else ("Participante externo" if p["blackbox"] else "—")
+        S["participants"].append((p["name"], roles, p["doc"]))
     for i in order:
         n = nodes[i]
         if kind(n["type"]) == "activity":
-            k += 1
-            who = n["lane"] or pools[n["pool"]]["name"]
-            desc = " ".join(filter(None, [n["doc"]] + notes[i]))
-            md.append(f"| {k} | {cell(n['name'])} | {TYPE_ES.get(n['type'], n['type'])} | {cell(who)} | "
-                      f"{cell(', '.join(ins[i]))} | {cell(', '.join(outs[i]))} | {cell(desc)} |")
-    md += ["", "## Secuencia", ""]
+            S["activities"].append({
+                "name": n["name"], "type": TYPE_ES.get(n["type"], n["type"]), "who": who(n),
+                "ins": ", ".join(ins[i]), "outs": ", ".join(outs[i]),
+                "desc": " ".join(filter(None, [n["doc"]] + notes[i]))})
+    # secuencia como segmentos (texto, estilo) para poder pintarla en Markdown o Word
+    seq = S["sequence"]
     for i in order:
-        n = nodes[i]
-        nxt = out_f[i]
-        name = title(i)
+        n, nxt, name = nodes[i], out_f[i], title(i)
         if kind(n["type"]) == "gateway" and len(nxt) > 1:
-            md.append(f"- **{name}** (decisión)")
+            seq.append((0, [(name, "b"), (" (decisión)", "")]))
             for f in nxt:
                 cond = f["name"] or f["condition"] or ("por defecto" if f["default"] else "")
-                md.append(f"  - {cond or '→'}: ir a *{title(f['target'])}*")
+                seq.append((1, [(f"{cond or '→'}: ir a ", ""), (title(f["target"]), "i")]))
+                S["decisions"].append((name, who(n), cond or "—", title(f["target"])))
         elif n["type"].startswith("end"):
-            md.append(f"- Fin: **{name}**")
+            seq.append((0, [("Fin: ", ""), (name, "b")]))
         elif nxt:
-            tgt = ", ".join(f"*{title(f['target'])}*" for f in nxt)
-            md.append(f"- **{name}** → {tgt}")
+            segs = [(name, "b"), (" → ", "")]
+            for k, f in enumerate(nxt):
+                segs += ([(", ", "")] if k else []) + [(title(f["target"]), "i")]
+            seq.append((0, segs))
         for b in boundary_of[i]:
-            tgt = ", ".join(f"*{title(f['target'])}*" for f in out_f[b["id"]]) or "—"
+            tgt = ", ".join(title(f["target"]) for f in out_f[b["id"]]) or "—"
+            kind_es = BOUNDARY_ES.get(b["type"], b["type"])
             mode = "interrumpe la actividad" if b["interrupting"] else "sin interrumpir la actividad"
             when = f" ({b['timer']})" if b["timer"] else ""
-            md.append(f"  - Excepción por {BOUNDARY_ES.get(b['type'], b['type'])}: "
-                      f"**{b['name'] or b['orig']}**{when}, {mode} → {tgt}")
+            seq.append((1, [(f"Excepción por {kind_es}: ", ""), (b["name"] or b["orig"], "b"),
+                            (f"{when}, {mode} → ", ""), (tgt, "i")]))
+            S["exceptions"].append((name, b["name"] or b["orig"], kind_es.capitalize(),
+                                    b["timer"] or "—", "Sí" if b["interrupting"] else "No", tgt))
     for f in spec["messageFlows"]:
-        src = title(f["source"]) if f["source"] in nodes else pools[f["source"]]["name"]
-        dst = title(f["target"]) if f["target"] in nodes else pools[f["target"]]["name"]
-        md.append(f"- Mensaje{(' «' + f['name'] + '»') if f['name'] else ''}: {src} ⇢ {dst}")
+        S["messages"].append((title(f["source"]), f["name"] or "—", title(f["target"])))
+    for n in spec["nodes"]:
+        if n["type"] in DATA_TYPES:
+            S["data"].append((n["name"], "Documento" if n["type"] == "dataObject" else "Almacén / sistema",
+                              ", ".join(used_in[n["id"]]) or "—", ", ".join(made_by[n["id"]]) or "—"))
+    return S
+
+
+def render_doc(spec, geo):
+    S = summarize(spec, geo)
+    cell = lambda s: (s or "").replace("|", "/").replace("\n", " ")
+    mark = {"b": "**", "i": "*", "": ""}
+    md = [f"# {S['name']}", ""]
+    if S["doc"]:
+        md += [S["doc"], ""]
+    md += ["## Participantes", ""]
+    md += [f"- **{name}**: {roles}" for name, roles, _ in S["participants"]]
+    md += ["", "## Actividades", "",
+           "| # | Actividad | Tipo | Responsable | Entradas | Salidas | Descripción |",
+           "|---|---|---|---|---|---|---|"]
+    for k, a in enumerate(S["activities"], 1):
+        md.append(f"| {k} | {cell(a['name'])} | {a['type']} | {cell(a['who'])} | {cell(a['ins'])} | "
+                  f"{cell(a['outs'])} | {cell(a['desc'])} |")
+    md += ["", "## Secuencia", ""]
+    for level, segs in S["sequence"]:
+        md.append("  " * level + "- " + "".join(f"{mark[st]}{t}{mark[st]}" for t, st in segs))
+    for src, name, dst in S["messages"]:
+        md.append(f"- Mensaje{(' «' + name + '»') if name != '—' else ''}: {src} ⇢ {dst}")
     return "\n".join(md) + "\n"
+
+
+# ---------------------------------------------------------------- Word (.docx)
+
+DOCX_NS = ('xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+           'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
+           'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
+           'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+           'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"')
+ACCENT = "C2410C"         # naranja Bizagi, legible sobre blanco
+HEAD_FILL = "E8601C"
+PORTRAIT, LANDSCAPE = (11906, 16838), (16838, 11906)   # A4 en twips
+MARGIN = 1134                                           # 2 cm
+
+
+def x(s):
+    return html.escape(str(s), quote=True)
+
+
+def w_run(text, style="", size=None, color=None):
+    props = ""
+    if "b" in style:
+        props += "<w:b/>"
+    if "i" in style:
+        props += "<w:i/>"
+    if color:
+        props += f'<w:color w:val="{color}"/>'
+    if size:
+        props += f'<w:sz w:val="{size}"/>'
+    rpr = f"<w:rPr>{props}</w:rPr>" if props else ""
+    return f'<w:r>{rpr}<w:t xml:space="preserve">{x(text)}</w:t></w:r>'
+
+
+def w_para(runs="", style=None, align=None, indent=None):
+    ppr = ""
+    if style:
+        ppr += f'<w:pStyle w:val="{style}"/>'
+    if indent:
+        ppr += f'<w:ind w:left="{indent}"/>'
+    if align:
+        ppr += f'<w:jc w:val="{align}"/>'
+    return f"<w:p>{'<w:pPr>' + ppr + '</w:pPr>' if ppr else ''}{runs}</w:p>"
+
+
+def w_table(headers, rows, widths):
+    grid = "".join(f'<w:gridCol w:w="{w}"/>' for w in widths)
+
+    def cell(text, w, head=False):
+        shade = f'<w:shd w:val="clear" w:color="auto" w:fill="{HEAD_FILL}"/>' if head else ""
+        paras = "".join(w_para(w_run(line, "b" if head else "", color="FFFFFF" if head else None),
+                               style="Celda")
+                        for line in (str(text) if text not in (None, "") else "—").split("\n"))
+        return f'<w:tc><w:tcPr><w:tcW w:w="{w}" w:type="dxa"/>{shade}</w:tcPr>{paras}</w:tc>'
+
+    out = [f'<w:tbl><w:tblPr><w:tblStyle w:val="Tabla"/><w:tblW w:w="{sum(widths)}" w:type="dxa"/>'
+           f'<w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>{grid}</w:tblGrid>',
+           '<w:tr><w:trPr><w:tblHeader/><w:cantSplit/></w:trPr>'
+           + "".join(cell(h, w, True) for h, w in zip(headers, widths)) + "</w:tr>"]
+    for row in rows:
+        out.append("<w:tr><w:trPr><w:cantSplit/></w:trPr>"
+                   + "".join(cell(c, w) for c, w in zip(row, widths)) + "</w:tr>")
+    out.append("</w:tbl>")
+    return "".join(out) + w_para()
+
+
+def scale_widths(fracs, total):
+    s = sum(fracs)
+    return [int(total * f / s) for f in fracs]
+
+
+def w_section(size):
+    w, h = size
+    orient = ' w:orient="landscape"' if w > h else ""
+    return (f'<w:sectPr><w:footerReference w:type="default" r:id="rIdFooter"/>'
+            f'<w:pgSz w:w="{w}" w:h="{h}"{orient}/>'
+            f'<w:pgMar w:top="{MARGIN}" w:right="{MARGIN}" w:bottom="{MARGIN}" w:left="{MARGIN}" '
+            f'w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>')
+
+
+def w_image(cx, cy, png_rid, svg_rid, alt=""):
+    svg_ext = ""
+    if svg_rid:
+        svg_ext = ('<a:extLst><a:ext uri="{96DAC541-7B7A-43D3-8B79-37D633B846F1}">'
+                   '<asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" '
+                   f'r:embed="{svg_rid}"/></a:ext></a:extLst>')
+    return (f'<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
+            f'<wp:extent cx="{cx}" cy="{cy}"/><wp:docPr id="1" name="Diagrama del proceso" descr="{x(alt)}"/>'
+            f'<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>'
+            f'<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+            f'<pic:pic><pic:nvPicPr><pic:cNvPr id="1" name="diagrama.png"/><pic:cNvPicPr/></pic:nvPicPr>'
+            f'<pic:blipFill><a:blip r:embed="{png_rid}">{svg_ext}</a:blip>'
+            f'<a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+            f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
+            f'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>'
+            f'</a:graphicData></a:graphic></wp:inline></w:drawing></w:r>')
+
+
+def find_browser():
+    import shutil
+    cands = [r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+             r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+             r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+             "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"]
+    for name in ("msedge", "microsoft-edge", "google-chrome", "chrome", "chromium", "chromium-browser"):
+        if shutil.which(name):
+            cands.insert(0, shutil.which(name))
+    return next((c for c in cands if Path(c).exists()), None)
+
+
+def svg_to_png(svg_text, size):
+    """Rasteriza el SVG con un Chrome/Edge en modo headless, si hay uno instalado."""
+    import subprocess
+    import tempfile
+    browser = find_browser()
+    if not browser:
+        return None
+    with tempfile.TemporaryDirectory() as tmp:
+        svg_p, png_p = Path(tmp) / "d.svg", Path(tmp) / "d.png"
+        svg_p.write_text(svg_text, encoding="utf-8")
+        w, h = (int(math.ceil(v)) for v in size)
+        try:
+            subprocess.run([browser, "--headless", "--disable-gpu", "--hide-scrollbars",
+                            "--force-device-scale-factor=2", f"--window-size={w},{h}",
+                            f"--screenshot={png_p}", svg_p.resolve().as_uri()],
+                           capture_output=True, timeout=60)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return png_p.read_bytes() if png_p.exists() else None
+
+
+def blank_png():
+    import struct
+    import zlib
+
+    def chunk(kind_, data):
+        return struct.pack(">I", len(data)) + kind_ + data + struct.pack(">I", zlib.crc32(kind_ + data))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(b"\x00\xff\xff\xff")) + chunk(b"IEND", b""))
+
+
+META_ES = {"codigo": "Código", "version": "Versión", "responsable": "Responsable del proceso",
+           "area": "Área", "elaborado": "Elaborado por", "revisado": "Revisado por",
+           "aprobado": "Aprobado por", "fecha": "Fecha"}
+
+
+def render_docx(spec, geo, out_path, png=True):
+    import datetime
+    import zipfile
+    S = summarize(spec, geo)
+    svg = render_svg(spec, geo)
+    png_bytes = (svg_to_png(svg, geo["size"]) if png else None)
+    has_png = png_bytes is not None
+    png_bytes = png_bytes or blank_png()
+    today = datetime.date.today().isoformat()
+
+    pw = PORTRAIT[0] - 2 * MARGIN
+    lw = LANDSCAPE[0] - 2 * MARGIN
+    body = [w_para(w_run(S["name"]), "Title"),
+            w_para(w_run("Documentación del proceso"), "Subtitle")]
+    meta = [(META_ES.get(k, k.capitalize()), v) for k, v in S["meta"].items()]
+    if not any(k == "fecha" for k in S["meta"]):
+        meta.append(("Fecha", today))
+    meta.append(("Generado con", f"bizagi-cli {VERSION} (BPMN 2.0 para Bizagi Modeler)"))
+    body.append(w_table(["Dato", "Valor"], meta, scale_widths([1, 2.4], pw)))
+
+    sec = 0
+
+    def h1(text):
+        nonlocal sec
+        sec += 1
+        return w_para(w_run(f"{sec}. {text}"), "Heading1")
+
+    body.append(h1("Objetivo y alcance"))
+    body.append(w_para(w_run(S["doc"] or "Sin descripción registrada.")))
+    body.append(h1("Participantes y roles"))
+    body.append(w_table(["Participante", "Roles (carriles)", "Descripción"],
+                        S["participants"], scale_widths([1.2, 2, 2], pw)))
+    # fin de la sección vertical; lo que sigue va en horizontal
+    body.append(f"<w:p><w:pPr>{w_section(PORTRAIT)}</w:pPr></w:p>")
+
+    # diagrama en horizontal, ajustado al área útil de la página
+    body.append(h1("Diagrama del proceso"))
+    W, H = geo["size"]
+    max_cx, max_cy = lw * 635, (LANDSCAPE[1] - 2 * MARGIN - 1400) * 635
+    s = min(max_cx / (W * 9525), max_cy / (H * 9525), 1.0)
+    cx, cy = int(W * 9525 * s), int(H * 9525 * s)
+    body.append(w_para(w_image(cx, cy, "rIdPng", "rIdSvg",
+                                       alt=f"Diagrama BPMN del proceso {S['name']}"), align="center"))
+    body.append(w_para(w_run(f"Figura 1. {S['name']} (BPMN 2.0). El archivo .bpmn se importa en "
+                             "Bizagi Modeler desde Exportar/Importar → Importar → BPMN."), "Caption"))
+
+    body.append(h1("Descripción de actividades"))
+    body.append(w_table(["N.º", "Actividad", "Tipo", "Responsable", "Entradas", "Salidas", "Descripción"],
+                        [(k, a["name"], a["type"], a["who"], a["ins"], a["outs"], a["desc"])
+                         for k, a in enumerate(S["activities"], 1)],
+                        scale_widths([0.45, 2, 1.3, 1.4, 1.5, 1.5, 3.6], lw)))
+    body.append(h1("Flujo del proceso"))
+    for level, segs in S["sequence"]:
+        body.append(w_para(w_run("• " if level == 0 else "– ")
+                           + "".join(w_run(t, st) for t, st in segs), indent=360 + 400 * level))
+    if S["decisions"]:
+        body.append(h1("Reglas de decisión"))
+        body.append(w_table(["Decisión", "Responsable", "Condición", "Continúa en"], S["decisions"],
+                            scale_widths([2, 1.5, 2.5, 2], lw)))
+    if S["exceptions"]:
+        body.append(h1("Excepciones y plazos"))
+        body.append(w_table(["Actividad", "Evento", "Tipo", "Plazo", "Interrumpe", "Acción"],
+                            S["exceptions"], scale_widths([1.8, 2, 1, 0.9, 0.9, 2], lw)))
+    if S["data"]:
+        body.append(h1("Documentos y sistemas"))
+        body.append(w_table(["Elemento", "Tipo", "Se usa en", "Lo produce"], S["data"],
+                            scale_widths([2, 1.3, 2.5, 2.5], lw)))
+    if S["messages"]:
+        body.append(h1("Interacciones con externos"))
+        body.append(w_table(["Origen", "Mensaje", "Destino"], S["messages"],
+                            scale_widths([2, 2, 2], lw)))
+    if S["notes"]:
+        body.append(h1("Notas"))
+        body.append(w_table(["Elemento", "Nota"], S["notes"], scale_widths([1, 3], lw)))
+    if not has_png:
+        body.append(w_para(w_run("Nota: el diagrama se incrustó como SVG (Word 2016 o superior). "
+                                 "Para una imagen de respaldo instale Chrome o Edge y vuelva a generar.",
+                                 "i", size=16, color="6B7280")))
+
+    document = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document {DOCX_NS}>'
+                f'<w:body>{"".join(body)}{w_section(LANDSCAPE)}</w:body></w:document>')
+    footer = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr {DOCX_NS}>'
+              f'<w:p><w:pPr><w:pStyle w:val="Footer"/><w:jc w:val="right"/></w:pPr>'
+              f'{w_run(S["name"] + "  ·  Página ")}<w:fldSimple w:instr=" PAGE "><w:r><w:t>1</w:t></w:r>'
+              f'</w:fldSimple></w:p></w:ftr>')
+    styles = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/>
+<w:sz w:val="21"/><w:szCs w:val="21"/><w:lang w:val="es-PE"/></w:rPr></w:rPrDefault>
+<w:pPrDefault><w:pPr><w:spacing w:after="100" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
+<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/>
+<w:pPr><w:spacing w:before="1200" w:after="80"/></w:pPr><w:rPr><w:b/><w:color w:val="1F2937"/><w:sz w:val="52"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Subtitle"><w:name w:val="Subtitle"/><w:basedOn w:val="Normal"/><w:qFormat/>
+<w:pPr><w:spacing w:after="480"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="8" w:color="{HEAD_FILL}"/></w:pBdr></w:pPr>
+<w:rPr><w:color w:val="{ACCENT}"/><w:sz w:val="28"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>
+<w:pPr><w:keepNext/><w:spacing w:before="360" w:after="120"/><w:outlineLvl w:val="0"/></w:pPr>
+<w:rPr><w:b/><w:color w:val="{ACCENT}"/><w:sz w:val="30"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="caption"/><w:basedOn w:val="Normal"/><w:qFormat/>
+<w:pPr><w:jc w:val="center"/><w:spacing w:before="80" w:after="240"/></w:pPr><w:rPr><w:i/><w:color w:val="6B7280"/><w:sz w:val="17"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Celda"><w:name w:val="Celda"/><w:basedOn w:val="Normal"/>
+<w:pPr><w:spacing w:before="20" w:after="20" w:line="240" w:lineRule="auto"/></w:pPr><w:rPr><w:sz w:val="18"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Footer"><w:name w:val="footer"/><w:basedOn w:val="Normal"/>
+<w:rPr><w:color w:val="6B7280"/><w:sz w:val="16"/></w:rPr></w:style>
+<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/>
+<w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/>
+<w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>
+<w:style w:type="table" w:styleId="Tabla"><w:name w:val="Tabla proceso"/><w:basedOn w:val="TableNormal"/>
+<w:tblPr><w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/><w:left w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/>
+<w:bottom w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/><w:right w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/>
+<w:insideH w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/></w:tblBorders>
+<w:tblCellMar><w:top w:w="50" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="50" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>
+</w:styles>'''
+    content_types = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="png" ContentType="image/png"/>
+<Default Extension="svg" ContentType="image/svg+xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
+<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
+<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>'''
+    rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>'''
+    doc_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+<Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+<Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>
+<Relationship Id="rIdPng" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/diagrama.png"/>
+<Relationship Id="rIdSvg" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/diagrama.svg"/>
+</Relationships>'''
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    core = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" '
+            f'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" '
+            f'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+            f'<dc:title>{x(S["name"])}</dc:title><dc:creator>bizagi-cli</dc:creator>'
+            f'<dcterms:created xsi:type="dcterms:W3CDTF">{now}</dcterms:created>'
+            f'<dcterms:modified xsi:type="dcterms:W3CDTF">{now}</dcterms:modified></cp:coreProperties>')
+    app = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+           '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">'
+           f'<Application>bizagi-cli {VERSION}</Application></Properties>')
+    with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml", content_types)
+        z.writestr("_rels/.rels", rels)
+        z.writestr("docProps/core.xml", core)
+        z.writestr("docProps/app.xml", app)
+        z.writestr("word/document.xml", document)
+        z.writestr("word/styles.xml", styles)
+        # modo de compatibilidad 15 (Word 2013+): sin él Word abre el archivo en "Modo de compatibilidad"
+        z.writestr("word/settings.xml",
+                   '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                   '<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                   '<w:defaultTabStop w:val="708"/><w:compat><w:compatSetting w:name="compatibilityMode" '
+                   'w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>')
+        z.writestr("word/footer1.xml", footer)
+        z.writestr("word/_rels/document.xml.rels", doc_rels)
+        z.writestr("word/media/diagrama.png", png_bytes)
+        z.writestr("word/media/diagrama.svg", svg)
+    return has_png
 
 
 # ---------------------------------------------------------------- CLI
@@ -1338,6 +1685,10 @@ def main(argv=None):
     d = sp.add_parser("doc")
     d.add_argument("file")
     d.add_argument("-o", "--out")
+    dx = sp.add_parser("docx")
+    dx.add_argument("file")
+    dx.add_argument("-o", "--out", required=True)
+    dx.add_argument("--no-png", action="store_true", help="no rasterizar el diagrama (solo SVG)")
     a = ap.parse_args(argv)
     try:
         if a.cmd == "read":
@@ -1373,6 +1724,10 @@ def main(argv=None):
         elif a.cmd == "preview":
             Path(a.out).write_text(render_svg(spec, geo), encoding="utf-8")
             print(f"vista previa en {a.out}")
+        elif a.cmd == "docx":
+            has_png = render_docx(spec, geo, a.out, png=not a.no_png)
+            print(f"documento Word en {a.out}"
+                  + ("" if has_png else " (diagrama solo en SVG: requiere Word 2016 o superior)"))
         elif a.cmd == "doc":
             md = render_doc(spec, geo)
             if a.out:

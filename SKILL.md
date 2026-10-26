@@ -14,6 +14,7 @@ Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta d
 | `validate spec.json\|modelo.bpmn` | Revisa las reglas de modelado (errores y avisos) |
 | `preview spec.json\|modelo.bpmn -o vista.svg` | Dibuja el diagrama sin abrir Bizagi |
 | `doc spec.json\|modelo.bpmn -o doc.md` | Genera la documentación del proceso (roles, actividades, secuencia) |
+| `docx spec.json\|modelo.bpmn -o proceso.docx` | Genera un documento Word con ficha, diagrama, actividades, decisiones, excepciones, documentos y externos |
 
 ## Flujo de trabajo
 
@@ -23,7 +24,8 @@ Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta d
 4. **Ejecutar `generate ... --svg`.** Para revisar la vista previa, conviértela a PNG con Edge en modo headless y mírala:
    `msedge --headless --disable-gpu --hide-scrollbars --window-size=2000,1200 --screenshot=vista.png file:///ruta/vista.svg`
 5. **Entregar el `.bpmn`.** El usuario lo abre en Bizagi Modeler con **Exportar/Importar → Importar → BPMN**, que crea una pestaña de diagrama nueva. Si el usuario lo pide y computer-use está disponible, puedes importarlo tú.
-6. **Para modificar un modelo existente:** en Bizagi se usa **Exportar/Importar → Exportar → BPMN**. Luego `read` → editas la spec → `generate` → se importa de nuevo.
+6. **Si piden documentación o un entregable**, ejecuta `docx`. El diagrama se incrusta en SVG, con un PNG de respaldo si hay Chrome o Edge instalado. La ficha se completa con `meta` en la spec: `codigo`, `version`, `responsable`, `area`, `elaborado`, `revisado`, `aprobado`, `fecha`.
+7. **Para modificar un modelo existente:** en Bizagi se usa **Exportar/Importar → Exportar → BPMN**. Luego `read` → editas la spec → `generate` → se importa de nuevo.
 
 ## Formato de la spec
 
@@ -31,6 +33,7 @@ Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta d
 {
   "name": "Solicitud de compra",
   "doc": "Objetivo y alcance del proceso.",
+  "meta": {"codigo": "PR-LOG-001", "version": "1.0", "responsable": "Jefatura de Logística"},
   "pools": [
     {"name": "Empresa", "lanes": ["Solicitante", "Jefe de área", "Compras"]},
     {"name": "Proveedor", "blackbox": true}

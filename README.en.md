@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.2.0-0a7bbb?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.3.0-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agents" src="https://img.shields.io/badge/agents-3-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -49,6 +49,12 @@ It also handles deadlines, exceptions, documents and systems. For example, a com
   <img alt="Complaint handling imported into Bizagi Modeler" src="docs/bizagi-reclamos.jpg" width="100%">
 </p>
 
+## 📄 Word document
+
+`docx` produces a deliverable ready for review or sign-off. It contains a summary sheet with code, version and owners, the objective, the participants, the **diagram on a landscape page** (vector, with an image fallback), the activities table with inputs and outputs, the flow, the decision rules, the exceptions and deadlines, the documents and systems, and the interactions with external parties. Pure Python, no dependencies.
+
+Samples: [atencion-reclamos.docx](docs/atencion-reclamos.docx) · [solicitud-compra.docx](docs/solicitud-compra.docx)
+
 ## 🧰 Commands
 
 | Command | Purpose |
@@ -58,6 +64,7 @@ It also handles deadlines, exceptions, documents and systems. For example, a com
 | `validate spec.json\|model.bpmn` | Modeling rules: start and end events, unlabeled gateway outputs, unreachable nodes… |
 | `preview spec.json\|model.bpmn -o preview.svg` | SVG diagram to review without opening Bizagi |
 | `doc spec.json\|model.bpmn -o doc.md` | Process documentation: roles, activities and sequence |
+| `docx spec.json\|model.bpmn -o process.docx` | **Word document**: summary sheet, diagram, activities, decisions, exceptions, documents and external parties |
 
 **Supports:**
 - Pools and lanes, including external (black-box) pools, and message flows.

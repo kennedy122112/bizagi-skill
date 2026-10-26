@@ -1,40 +1,164 @@
 {
   "name": "Atención de reclamos",
+  "meta": {
+    "codigo": "PR-ATC-001",
+    "version": "1.0",
+    "responsable": "Jefatura de Atención al Ciudadano",
+    "elaborado": "Mesa de partes"
+  },
   "doc": "El ciudadano presenta un reclamo; Mesa de partes lo registra, el área responsable lo evalúa y responde dentro del plazo.",
   "pools": [
-    {"name": "Entidad", "lanes": ["Mesa de partes", "Área responsable", "Jefatura"]},
-    {"name": "Ciudadano", "blackbox": true}
+    {
+      "name": "Entidad",
+      "lanes": [
+        "Mesa de partes",
+        "Área responsable",
+        "Jefatura"
+      ]
+    },
+    {
+      "name": "Ciudadano",
+      "blackbox": true
+    }
   ],
   "nodes": [
-    {"id": "inicio", "type": "startMessage", "name": "Reclamo recibido", "lane": "Mesa de partes"},
-    {"id": "registrar", "type": "userTask", "name": "Registrar reclamo", "lane": "Mesa de partes",
-     "doc": "Registra el reclamo en el libro de reclamaciones y asigna número de expediente."},
-    {"id": "clasificar", "type": "businessRuleTask", "name": "Clasificar reclamo", "lane": "Mesa de partes"},
-    {"id": "gw_tipo", "type": "exclusive", "name": "¿Procede?", "lane": "Mesa de partes"},
-    {"id": "improcedente", "type": "sendTask", "name": "Notificar improcedencia", "lane": "Mesa de partes"},
-    {"id": "fin_improc", "type": "end", "name": "Reclamo improcedente", "lane": "Mesa de partes"},
-    {"id": "evaluar", "type": "userTask", "name": "Evaluar reclamo", "lane": "Área responsable"},
-    {"id": "recordatorio", "type": "timer", "name": "10 días sin respuesta", "attachedTo": "evaluar",
-     "interrupting": false, "timer": "P10D"},
-    {"id": "alertar", "type": "sendTask", "name": "Alertar a jefatura", "lane": "Jefatura"},
-    {"id": "fin_alerta", "type": "end", "name": "Alerta enviada", "lane": "Jefatura"},
-    {"id": "vencido", "type": "timer", "name": "Plazo vencido (30 días)", "attachedTo": "evaluar", "timer": "P30D"},
-    {"id": "escalar", "type": "userTask", "name": "Resolver por jefatura", "lane": "Jefatura"},
-    {"id": "redactar", "type": "userTask", "name": "Redactar respuesta", "lane": "Área responsable"},
-    {"id": "notificar", "type": "serviceTask", "name": "Notificar respuesta", "lane": "Mesa de partes"},
-    {"id": "fallo_envio", "type": "errorCatch", "name": "Error de envío", "attachedTo": "notificar"},
-    {"id": "notif_fisica", "type": "manualTask", "name": "Notificar en físico", "lane": "Mesa de partes"},
-    {"id": "fin", "type": "end", "name": "Reclamo atendido", "lane": "Mesa de partes"},
-    {"id": "doc_reclamo", "type": "dataObject", "name": "Hoja de reclamo"},
-    {"id": "bd", "type": "dataStore", "name": "Libro de reclamaciones"},
-    {"id": "doc_resp", "type": "dataObject", "name": "Carta de respuesta"},
-    {"id": "nota", "type": "annotation", "text": "Plazo legal: 30 días hábiles"}
+    {
+      "id": "inicio",
+      "type": "startMessage",
+      "name": "Reclamo recibido",
+      "lane": "Mesa de partes"
+    },
+    {
+      "id": "registrar",
+      "type": "userTask",
+      "name": "Registrar reclamo",
+      "lane": "Mesa de partes",
+      "doc": "Registra el reclamo en el libro de reclamaciones y asigna número de expediente."
+    },
+    {
+      "id": "clasificar",
+      "type": "businessRuleTask",
+      "name": "Clasificar reclamo",
+      "lane": "Mesa de partes"
+    },
+    {
+      "id": "gw_tipo",
+      "type": "exclusive",
+      "name": "¿Procede?",
+      "lane": "Mesa de partes"
+    },
+    {
+      "id": "improcedente",
+      "type": "sendTask",
+      "name": "Notificar improcedencia",
+      "lane": "Mesa de partes"
+    },
+    {
+      "id": "fin_improc",
+      "type": "end",
+      "name": "Reclamo improcedente",
+      "lane": "Mesa de partes"
+    },
+    {
+      "id": "evaluar",
+      "type": "userTask",
+      "name": "Evaluar reclamo",
+      "lane": "Área responsable"
+    },
+    {
+      "id": "recordatorio",
+      "type": "timer",
+      "name": "10 días sin respuesta",
+      "attachedTo": "evaluar",
+      "interrupting": false,
+      "timer": "P10D"
+    },
+    {
+      "id": "alertar",
+      "type": "sendTask",
+      "name": "Alertar a jefatura",
+      "lane": "Jefatura"
+    },
+    {
+      "id": "fin_alerta",
+      "type": "end",
+      "name": "Alerta enviada",
+      "lane": "Jefatura"
+    },
+    {
+      "id": "vencido",
+      "type": "timer",
+      "name": "Plazo vencido (30 días)",
+      "attachedTo": "evaluar",
+      "timer": "P30D"
+    },
+    {
+      "id": "escalar",
+      "type": "userTask",
+      "name": "Resolver por jefatura",
+      "lane": "Jefatura"
+    },
+    {
+      "id": "redactar",
+      "type": "userTask",
+      "name": "Redactar respuesta",
+      "lane": "Área responsable"
+    },
+    {
+      "id": "notificar",
+      "type": "serviceTask",
+      "name": "Notificar respuesta",
+      "lane": "Mesa de partes"
+    },
+    {
+      "id": "fallo_envio",
+      "type": "errorCatch",
+      "name": "Error de envío",
+      "attachedTo": "notificar"
+    },
+    {
+      "id": "notif_fisica",
+      "type": "manualTask",
+      "name": "Notificar en físico",
+      "lane": "Mesa de partes"
+    },
+    {
+      "id": "fin",
+      "type": "end",
+      "name": "Reclamo atendido",
+      "lane": "Mesa de partes"
+    },
+    {
+      "id": "doc_reclamo",
+      "type": "dataObject",
+      "name": "Hoja de reclamo"
+    },
+    {
+      "id": "bd",
+      "type": "dataStore",
+      "name": "Libro de reclamaciones"
+    },
+    {
+      "id": "doc_resp",
+      "type": "dataObject",
+      "name": "Carta de respuesta"
+    },
+    {
+      "id": "nota",
+      "type": "annotation",
+      "text": "Plazo legal: 30 días hábiles"
+    }
   ],
   "flows": [
     "inicio -> registrar",
     "registrar -> clasificar",
     "clasificar -> gw_tipo",
-    {"from": "gw_tipo", "to": "evaluar", "name": "Sí", "default": true},
+    {
+      "from": "gw_tipo",
+      "to": "evaluar",
+      "name": "Sí",
+      "default": true
+    },
     "gw_tipo -> improcedente : No",
     "improcedente -> fin_improc",
     "evaluar -> redactar",

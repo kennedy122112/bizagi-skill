@@ -24,6 +24,8 @@ jobs:
             python scripts/bizagi_cli.py read /tmp/out.bpmn -o /tmp/roundtrip.json
             python scripts/bizagi_cli.py validate /tmp/roundtrip.json
             python scripts/bizagi_cli.py doc /tmp/out.bpmn -o /tmp/out.md
+            python scripts/bizagi_cli.py docx "$spec" -o /tmp/out.docx --no-png
+            python -c "import zipfile,xml.dom.minidom as m;z=zipfile.ZipFile('/tmp/out.docx');[m.parseString(z.read(n)) for n in z.namelist() if n.endswith(('.xml','.rels'))];print('docx ok')"
           done
           for bpmn in examples/*.bpmn; do
             python scripts/bizagi_cli.py validate "$bpmn"

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0 — 2026-10-26
+
+### Nuevo
+- Comando **`docx`**: documento Word (.docx) generado solo con la biblioteca estándar. Incluye:
+  - una ficha con los datos de `meta`, el objetivo y los participantes;
+  - el diagrama en una página horizontal, en SVG con un PNG de respaldo cuando hay Chrome o Edge (`--no-png` para omitirlo);
+  - tablas de actividades, decisiones, excepciones, documentos y sistemas, interacciones externas y notas;
+  - pie con número de página.
+- `meta` en la spec: `codigo`, `version`, `responsable`, `area`, `elaborado`, `revisado`, `aprobado`, `fecha`.
+- Probado abriendo el documento en Word 365, sin modo de compatibilidad.
+
+### Cambios
+- `doc` y `docx` comparten el mismo resumen del proceso.
+
 ## 0.2.0 — 2026-10-26
 
 ### Nuevo
