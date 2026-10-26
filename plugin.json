@@ -1,0 +1,29 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "bizagi",
+  "version": "0.6.0",
+  "description": "Modela procesos para Bizagi Modeler desde lenguaje natural: tu agente de IA interpreta la descripción y genera BPMN 2.0 importable en Bizagi, vista previa y documentación en Word (con tu propia plantilla), 100 % local, sin API ni MCP.",
+  "author": {
+    "name": "kennedy122112",
+    "url": "https://github.com/kennedy122112"
+  },
+  "homepage": "https://github.com/kennedy122112/bizagi-skill",
+  "repository": "https://github.com/kennedy122112/bizagi-skill",
+  "license": "MIT",
+  "keywords": [
+    "bizagi",
+    "bpmn",
+    "bpmn-2.0",
+    "procesos",
+    "process-modeling",
+    "word",
+    "docx",
+    "skills",
+    "agent-skills",
+    "claude-code",
+    "codex",
+    "opencode",
+    "gemini",
+    "cursor"
+  ]
+}

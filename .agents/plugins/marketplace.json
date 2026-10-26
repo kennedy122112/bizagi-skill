@@ -1,0 +1,20 @@
+{
+  "name": "bizagi-skill",
+  "interface": {
+    "displayName": "bizagi-skill"
+  },
+  "plugins": [
+    {
+      "name": "bizagi",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

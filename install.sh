@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 # Instala el skill "bizagi" para todos tus agentes de IA (macOS / Linux / Git Bash).
 #
-# Deja un solo clon de git en ~/.agents/skills/bizagi, la ruta estándar que leen
-# Codex, OpenCode, Gemini CLI / Antigravity y Cursor. Claude Code no lee esa ruta,
-# así que se crea un enlace simbólico en ~/.claude/skills/bizagi al mismo clon.
-# Volver a ejecutar el script actualiza todo con git pull.
+# Clona el repo en ~/.bizagi-skill y enlaza su skill en ~/.agents/skills/bizagi, la ruta
+# estándar que leen Codex, OpenCode, Gemini CLI / Antigravity y Cursor, y en
+# ~/.claude/skills/bizagi para Claude Code. Volver a ejecutar el script actualiza todo.
+# Alternativa con Node: npx -y github:kennedy122112/bizagi-skill setup
 #
 #   curl -fsSL https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.sh | bash
 #   bash install.sh --uninstall
 set -euo pipefail
 
-NAME="bizagi"
 REPO="${BIZAGI_SKILL_REPO:-https://github.com/kennedy122112/bizagi-skill.git}"
-MAIN="$HOME/.agents/skills/$NAME"
-CLAUDE_LINK="$HOME/.claude/skills/$NAME"
+STORE="$HOME/.bizagi-skill"
+SKILL="$STORE/skills/bizagi"
+LINKS=("Agent Skills (Codex, OpenCode, Gemini, Cursor)|$HOME/.agents/skills/bizagi|" \
+       "Claude Code|$HOME/.claude/skills/bizagi|$HOME/.claude")
 
 # en Git Bash (Windows) ln -s copia en vez de enlazar: allí se usa un junction de Windows
 case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) WINDOWS=1 ;; *) WINDOWS=0 ;; esac
@@ -37,55 +38,57 @@ unlink_dir() {
 
 backup() {
   # el respaldo va fuera de las carpetas de skills para que ningún agente lo cargue dos veces
-  local dest="${TMPDIR:-/tmp}/$NAME-respaldo-$(date +%Y%m%d-%H%M%S)"
+  local dest="${TMPDIR:-/tmp}/bizagi-respaldo-$(date +%Y%m%d-%H%M%S)-$RANDOM"
   mv "$1" "$dest"
   echo "  Copia anterior movida a $dest"
 }
 
 if [ "${1:-}" = "--uninstall" ]; then
-  [ -L "$CLAUDE_LINK" ] && unlink_dir "$CLAUDE_LINK" && echo "Enlace de Claude Code eliminado."
-  [ -e "$MAIN" ] && backup "$MAIN" && echo "Skill retirado de ~/.agents/skills."
+  for row in "${LINKS[@]}"; do
+    IFS="|" read -r label path only <<< "$row"
+    if [ -L "$path" ]; then unlink_dir "$path"; echo "Enlace eliminado: $path"; fi
+  done
+  if [ -e "$STORE" ]; then backup "$STORE"; fi
   echo "Listo: bizagi desinstalado."
   exit 0
 fi
 
-command -v git >/dev/null || { echo "Se necesita git." >&2; exit 1; }
+command -v git >/dev/null || { echo "Se necesita git, o usa: npx -y github:kennedy122112/bizagi-skill setup" >&2; exit 1; }
 PY=""
 for c in python3 python; do command -v "$c" >/dev/null && { PY="$c"; break; }; done
 [ -z "$PY" ] && echo "Aviso: no se encontró Python 3.9+; el skill lo necesita para ejecutarse."
 
-# 1) clon único en ~/.agents/skills/bizagi
-mkdir -p "$(dirname "$MAIN")"
-if [ -d "$MAIN/.git" ]; then
-  echo "Actualizando $MAIN ..."
-  git -C "$MAIN" pull --ff-only --quiet
+# 1) clon en ~/.bizagi-skill
+if [ -d "$STORE/.git" ]; then
+  echo "Actualizando $STORE ..."
+  git -C "$STORE" pull --ff-only --quiet
 else
-  [ -e "$MAIN" ] && backup "$MAIN"
-  echo "Clonando en $MAIN ..."
-  git clone --quiet "$REPO" "$MAIN"
+  [ -e "$STORE" ] && backup "$STORE"
+  echo "Clonando en $STORE ..."
+  git clone --quiet "$REPO" "$STORE"
 fi
 
-# 2) Claude Code: enlace al mismo clon
+# 2) enlaces para cada agente (una instalación anterior en esas rutas se respalda)
 report=""
-if [ -d "$HOME/.claude" ]; then
-  mkdir -p "$(dirname "$CLAUDE_LINK")"
-  if [ -L "$CLAUDE_LINK" ]; then unlink_dir "$CLAUDE_LINK"; elif [ -e "$CLAUDE_LINK" ]; then backup "$CLAUDE_LINK"; fi
-  link_dir "$MAIN" "$CLAUDE_LINK"
-  report+="  Claude Code                enlace ~/.claude/skills/$NAME\n"
-fi
-
-# 3) el resto lee ~/.agents/skills directamente
-detect() { command -v "$2" >/dev/null || [ -d "$3" ]; }
+for row in "${LINKS[@]}"; do
+  IFS="|" read -r label path only <<< "$row"
+  [ -n "$only" ] && [ ! -d "$only" ] && continue
+  mkdir -p "$(dirname "$path")"
+  if [ -L "$path" ]; then unlink_dir "$path"; elif [ -e "$path" ]; then backup "$path"; fi
+  link_dir "$SKILL" "$path"
+  report+="$(printf '  %-48s %s' "$label" "${path/#$HOME/~}")\n"
+done
+detect() { command -v "$1" >/dev/null || [ -d "$2" ]; }
 for row in "Codex|codex|$HOME/.codex" "OpenCode|opencode|$HOME/.config/opencode" \
            "Gemini CLI / Antigravity|gemini|$HOME/.gemini" "Cursor|cursor|$HOME/.cursor"; do
   IFS="|" read -r label cmd dir <<< "$row"
-  if detect "$label" "$cmd" "$dir"; then state="lee ~/.agents/skills"; else state="no detectado (lo verá si lo instalas)"; fi
-  report+="$(printf '  %-26s %s' "$label" "$state")\n"
+  if detect "$cmd" "$dir"; then state="lee ~/.agents/skills"; else state="no detectado (lo verá si lo instalas)"; fi
+  report+="$(printf '  %-48s %s' "$label" "$state")\n"
 done
 
-# 4) comprobación
+# 3) comprobación
 version="sin Python"
-[ -n "$PY" ] && version="$("$PY" "$MAIN/scripts/bizagi_cli.py" --version 2>/dev/null || echo "error al ejecutar")"
+[ -n "$PY" ] && version="$("$PY" "$SKILL/scripts/bizagi_cli.py" --version 2>/dev/null || echo "error al ejecutar")"
 echo
 echo "bizagi instalado ($version)"
 printf "%b" "$report"

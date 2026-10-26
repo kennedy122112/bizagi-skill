@@ -5,9 +5,9 @@
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.5.0-0a7bbb?style=for-the-badge">
+  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.6.0-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
-  <img alt="Agentes" src="https://img.shields.io/badge/agentes-3-8a0f8a?style=for-the-badge">
+  <img alt="Agentes" src="https://img.shields.io/badge/agentes-5-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
   <img alt="Bizagi" src="https://img.shields.io/badge/Bizagi%20Modeler-4.1-e8601c?style=for-the-badge">
   <img alt="Licencia" src="https://img.shields.io/badge/license-MIT-5fa500?style=for-the-badge">
@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://github.com/kennedy122112/bizagi-skill/stargazers"><img alt="stars" src="https://img.shields.io/github/stars/kennedy122112/bizagi-skill?style=flat&logo=github&label=stars"></a>
   <a href="https://github.com/kennedy122112/bizagi-skill/actions/workflows/validate.yml"><img alt="validate" src="https://github.com/kennedy122112/bizagi-skill/actions/workflows/validate.yml/badge.svg"></a>
-  <img alt="funciona con" src="https://img.shields.io/badge/funciona%20con-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20OpenCode-e8601c?style=flat">
+  <img alt="funciona con" src="https://img.shields.io/badge/funciona%20con-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20OpenCode%20%C2%B7%20Gemini%20%C2%B7%20Cursor-e8601c?style=flat">
   <img alt="powered by" src="https://img.shields.io/badge/powered%20by-Python%20stdlib-3776ab?style=flat&logo=python&logoColor=white">
 </p>
 
@@ -60,7 +60,7 @@ Ejemplos: [atencion-reclamos.docx](docs/atencion-reclamos.docx) · [solicitud-co
 Usa el Word de tu organización (o cualquier `.docx` o `.dotx`) como plantilla:
 
 ```bash
-python scripts/bizagi_cli.py docx proceso.json -o entregable.docx --template mi-plantilla.docx
+python skills/bizagi/scripts/bizagi_cli.py docx proceso.json -o entregable.docx --template mi-plantilla.docx
 ```
 
 De tu plantilla se conserva todo: logo, encabezados y pies, carátula, control de versiones, firmas, márgenes y estilos. El contenido del proceso usa tus estilos de título, aunque el Word esté en otro idioma, y las tablas toman el color de tus títulos.
@@ -78,7 +78,7 @@ Escribe estos **marcadores** donde quieras en la plantilla, también en encabeza
 
 Los datos que falten aparecen como "Por completar". Si la plantilla ya tiene `{{nombre}}`, no se repite el título del proceso; y si tiene marcadores de ficha, no se agrega la ficha propia.
 
-En [`plantillas/plantilla-ejemplo.docx`](plantillas/plantilla-ejemplo.docx) hay una plantilla neutra de punto de partida, con carátula, control de versiones, aprobaciones y encabezado y pie con marcadores. Resultado de ejemplo: [atencion-reclamos-plantilla.docx](docs/atencion-reclamos-plantilla.docx).
+En [`skills/bizagi/plantillas/plantilla-ejemplo.docx`](skills/bizagi/plantillas/plantilla-ejemplo.docx) hay una plantilla neutra de punto de partida, con carátula, control de versiones, aprobaciones y encabezado y pie con marcadores. Resultado de ejemplo: [atencion-reclamos-plantilla.docx](docs/atencion-reclamos-plantilla.docx).
 
 ## 🧰 Comandos
 
@@ -104,7 +104,56 @@ Las posiciones del diagrama se calculan automáticamente.
 
 ## 🚀 Instalación
 
-Requisitos: **git** y **Python 3.9 o superior**. No usa paquetes externos.
+Requisito para usar el skill: **Python 3.9 o superior**. No usa paquetes externos.
+
+### 1. Un solo comando (recomendado)
+
+```bash
+npx -y github:kennedy122112/bizagi-skill setup
+```
+
+Solo necesita **Node.js 18 o superior**, sin git. Deja el skill disponible para **todos tus agentes** a la vez y sin duplicarlo:
+
+| Agente | Cómo lo encuentra |
+|---|---|
+| Codex | Lee `~/.agents/skills` |
+| OpenCode | Lee `~/.agents/skills` |
+| Gemini CLI / Antigravity | Lee `~/.agents/skills` (alias de `~/.gemini/skills`) |
+| Cursor | Lee `~/.agents/skills` |
+| Claude Code | Enlace en `~/.claude/skills/bizagi` |
+
+La copia vive en `~/.bizagi-skill` y los agentes la usan mediante enlaces.
+- **Actualizar:** vuelve a ejecutar el mismo comando.
+- **Ver el estado:** `… status`.
+- **Desinstalar:** `… uninstall`.
+
+Si ya tenías una instalación anterior, se mueve a la carpeta temporal en lugar de borrarse.
+
+### 2. Como plugin de tu agente
+
+**Claude Code:**
+
+```
+/plugin install bizagi --marketplace kennedy122112/bizagi-skill
+```
+
+En versiones anteriores a la 2.1.275, o desde la terminal:
+
+```bash
+claude plugin marketplace add kennedy122112/bizagi-skill
+claude plugin install bizagi@bizagi-skill
+```
+
+**Codex:**
+
+```bash
+codex plugin marketplace add kennedy122112/bizagi-skill
+codex plugin add bizagi@bizagi-skill
+```
+
+Como plugin, el agente lo actualiza desde su propio marketplace (`/plugin marketplace update` o `codex plugin marketplace upgrade`). Usa **un solo método por agente**, para no tener el skill dos veces.
+
+### 3. Sin Node: con git
 
 **Windows (PowerShell):**
 
@@ -118,17 +167,7 @@ irm https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.ps
 curl -fsSL https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.sh | bash
 ```
 
-El instalador deja **un solo clon** en `~/.agents/skills/bizagi`, la ruta estándar de Agent Skills, y lo deja disponible para todos tus agentes sin duplicarlo:
-
-| Agente | Cómo lo encuentra |
-|---|---|
-| Codex | Lee `~/.agents/skills` |
-| OpenCode | Lee `~/.agents/skills` |
-| Gemini CLI / Antigravity | Lee `~/.agents/skills` (alias de `~/.gemini/skills`) |
-| Cursor | Lee `~/.agents/skills` |
-| Claude Code | Enlace `~/.claude/skills/bizagi` al mismo clon |
-
-Para **actualizar**, vuelve a ejecutar el mismo comando (hace `git pull`). Para **desinstalar**: `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.ps1))) -Uninstall` en PowerShell, o `bash install.sh --uninstall`. Si ya tenías una copia anterior, se mueve a la carpeta temporal en lugar de borrarse.
+Dejan el mismo resultado que `npx … setup`, con un clon de git en `~/.bizagi-skill`.
 
 Si tu agente no soporta skills, añade al `AGENTS.md` de tu proyecto:
 > *"Para modelar procesos de Bizagi, sigue las instrucciones de `~/.agents/skills/bizagi/SKILL.md`."*
@@ -143,10 +182,10 @@ Si tu agente no soporta skills, añade al `AGENTS.md` de tu proyecto:
 También puedes usar la herramienta sin agente:
 
 ```bash
-python scripts/bizagi_cli.py generate examples/solicitud-compra.json -o proceso.bpmn --svg proceso.svg
+python skills/bizagi/scripts/bizagi_cli.py generate examples/solicitud-compra.json -o proceso.bpmn --svg proceso.svg
 ```
 
-El formato de la spec y las reglas de modelado están en [SKILL.md](SKILL.md).
+El formato de la spec y las reglas de modelado están en [SKILL.md](skills/bizagi/SKILL.md).
 
 ## 🧪 Pruebas con lenguaje natural
 

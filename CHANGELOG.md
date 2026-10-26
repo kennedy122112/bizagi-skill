@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0 — 2026-10-26
+
+### Instalación plug and play
+- **`npx -y github:kennedy122112/bizagi-skill setup`**: instala o actualiza el skill en todos los agentes con un solo comando. Solo necesita Node 18+, sin git; incluye `status` y `uninstall`.
+- **Plugin de Claude Code**: `/plugin install bizagi --marketplace kennedy122112/bizagi-skill`. Pasa `claude plugin validate`.
+- **Plugin de Codex**: `codex plugin marketplace add kennedy122112/bizagi-skill` y `codex plugin add bizagi@bizagi-skill`. También se agregó el manifiesto de Cursor.
+- Los tres métodos y los scripts `install.ps1` / `install.sh` comparten el mismo esquema: una copia en `~/.bizagi-skill` enlazada en `~/.agents/skills/bizagi` y `~/.claude/skills/bizagi`. Cada uno migra solo las instalaciones anteriores, respaldándolas en la carpeta temporal.
+
+### Estructura
+- El skill se movió a `skills/bizagi/` (`SKILL.md`, `scripts/` y `plantillas/`), como piden los sistemas de plugins. Los ejemplos, la documentación y las pruebas siguen en la raíz.
+
 ## 0.5.0 — 2026-10-26
 
 ### Nuevo

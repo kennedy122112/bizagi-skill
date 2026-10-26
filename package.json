@@ -1,0 +1,19 @@
+{
+  "name": "bizagi-skill",
+  "version": "0.6.0",
+  "private": true,
+  "description": "Modela procesos para Bizagi Modeler desde lenguaje natural: skill + CLI local que genera BPMN 2.0, vista previa y Word (sin MCP), para Claude Code, Codex, OpenCode, Gemini y Cursor.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "bizagi-skill": "bin/bizagi-skill.mjs"
+  },
+  "files": [
+    "bin",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "repository": "github:kennedy122112/bizagi-skill"
+}
