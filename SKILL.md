@@ -40,26 +40,37 @@ Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta d
     {"id": "registrar", "type": "userTask", "name": "Registrar solicitud", "lane": "Solicitante",
      "doc": "Descripción de la actividad"},
     {"id": "gw", "type": "exclusive", "name": "¿Aprobada?", "lane": "Jefe de área"},
-    {"id": "esperar", "type": "timer", "name": "Esperar 2 días", "lane": "Compras", "timer": "P2D"}
+    {"id": "esperar", "type": "timer", "name": "Esperar 2 días", "lane": "Compras", "timer": "P2D"},
+    {"id": "vence", "type": "timer", "name": "Plazo vencido", "attachedTo": "aprobar", "timer": "P5D"},
+    {"id": "aviso", "type": "timer", "name": "3 días sin respuesta", "attachedTo": "aprobar",
+     "interrupting": false},
+    {"id": "solicitud", "type": "dataObject", "name": "Formato de solicitud"},
+    {"id": "bd", "type": "dataStore", "name": "Sistema logístico"},
+    {"id": "nota", "type": "annotation", "text": "Montos > S/ 10 000 requieren visto de gerencia"}
   ],
   "flows": [
     "inicio -> registrar",
     "gw -> fin_rechazo : No",
-    {"from": "gw", "to": "cotizar", "name": "Sí", "condition": "aprobado == true", "default": true}
+    {"from": "gw", "to": "cotizar", "name": "Sí", "condition": "aprobado == true", "default": true},
+    "vence -> escalar"
   ],
-  "messageFlows": ["cotizar -> Proveedor : Pedido de cotización"]
+  "messageFlows": ["cotizar -> Proveedor : Pedido de cotización"],
+  "associations": ["solicitud -> registrar", "registrar -> bd", "nota -> aprobar"]
 }
 ```
 
 - Con un solo pool basta `"lanes": [...]` en la raíz, sin `pools`.
 - Cada nodo lleva `lane`. Si el mismo nombre de carril existe en dos pools, indica también `pool`.
 - `flows` conecta nodos del **mismo** pool. Entre pools se usan `messageFlows`, que pueden apuntar al nombre de un pool externo (`blackbox`).
+- **Eventos adjuntos** (al borde de una actividad): usa `attachedTo` con el id de la actividad. Heredan su carril y no llevan flujos de entrada. Por defecto interrumpen la actividad; con `"interrupting": false` la actividad continúa (recordatorios, alertas). Tipos permitidos: `timer`, `messageCatch`, `signalCatch`, `conditional`, `errorCatch`.
+- **Datos y notas**: `dataObject` (documento), `dataStore` (base de datos o sistema) y `annotation` (nota con `text`). Se enlazan con `associations`: `"dato -> actividad"` es una entrada y `"actividad -> dato"` es una salida. Si no indicas `lane`, heredan el carril del elemento con el que se asocian.
 - Los ids son cortos, sin espacios y únicos. Los nombres de las actividades se escriben como verbo en infinitivo + objeto ("Aprobar solicitud"). Las decisiones se escriben como pregunta ("¿Aprobada?"), y cada salida lleva una etiqueta.
 
 **Tipos:**
-- Eventos: `start`, `startMessage`, `startTimer`, `startSignal`, `startConditional`, `end`, `endMessage`, `endError`, `endTerminate`, `endSignal`, `intermediate`, `timer`, `messageCatch`, `messageThrow`, `signalCatch`, `signalThrow`, `conditional`.
+- Eventos: `start`, `startMessage`, `startTimer`, `startSignal`, `startConditional`, `end`, `endMessage`, `endError`, `endTerminate`, `endSignal`, `intermediate`, `timer`, `messageCatch`, `messageThrow`, `signalCatch`, `signalThrow`, `conditional`, `errorCatch` (este último, solo adjunto).
 - Actividades: `task`, `userTask`, `serviceTask`, `manualTask`, `scriptTask`, `sendTask`, `receiveTask`, `businessRuleTask`, `subProcess`, `callActivity`.
 - Compuertas: `exclusive`, `parallel`, `inclusive`, `eventBased`, `complex`.
+- Artefactos: `dataObject`, `dataStore`, `annotation`.
 
 ## Buenas prácticas que aplicar al interpretar
 
@@ -67,9 +78,10 @@ Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta d
 - Una compuerta paralela que divide se cierra con otra paralela que une. No cierres ramas paralelas con una exclusiva.
 - Los retrabajos ("si está observada, se corrige y vuelve a aprobación") se modelan como un flujo de regreso. El layout los dibuja por encima.
 - Elige el tipo de tarea según quién la hace: una persona en el sistema es `userTask`, el sistema es `serviceTask`, fuera del sistema es `manualTask`, enviar o recibir a un externo es `sendTask`/`receiveTask` o un evento de mensaje.
+- Plazos, vencimientos y escalamientos ("si no responde en 10 días, alertar a jefatura") se modelan como un `timer` adjunto. Si la actividad sigue en curso, el timer es no interrumpible. Fallos de sistema ("si el envío falla, notificar en físico") se modelan como `errorCatch` adjunto.
+- Agrega los documentos de entrada y salida y los sistemas que se mencionen. Agrega una `annotation` para las reglas o plazos legales que no se ven en el diagrama.
 
 ## Limitaciones
 
 - El `.bpm` nativo no se lee directamente: hay que exportarlo a BPMN desde Bizagi.
-- No se generan eventos adjuntos (boundary). Al leerlos se convierten en eventos intermedios, con una nota en `_notes`.
 - Los subprocesos se generan contraídos. Si se necesita su detalle, se crea otra spec para el subproceso.

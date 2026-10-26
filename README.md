@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.1.0-0a7bbb?style=for-the-badge">
+  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.2.0-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agentes" src="https://img.shields.io/badge/agentes-3-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -43,6 +43,12 @@ El agente lo interpreta, escribe una especificación, la valida y genera un **BP
   <img alt="Proceso importado en Bizagi Modeler" src="docs/importado-en-bizagi.jpg" width="100%">
 </p>
 
+Y con plazos, excepciones, documentos y sistemas, por ejemplo una atención de reclamos con temporizadores adjuntos, un error de envío, un libro de reclamaciones y la nota del plazo legal:
+
+<p align="center">
+  <img alt="Atención de reclamos importada en Bizagi Modeler" src="docs/bizagi-reclamos.jpg" width="100%">
+</p>
+
 ## 🧰 Comandos
 
 | Comando | Para qué |
@@ -56,7 +62,9 @@ El agente lo interpreta, escribe una especificación, la valida y genera un **BP
 **Soporta:**
 - Pools y carriles, incluidos pools externos (caja negra), y flujos de mensaje.
 - Eventos: inicio, fin, temporizador, mensaje, señal, error y terminación.
+- Eventos adjuntos al borde de una tarea (temporizador, mensaje, señal, condición o error), interrumpibles o no.
 - Todos los tipos de tarea, y subprocesos.
+- Objetos de datos, almacenes de datos y anotaciones, con asociaciones de entrada y salida.
 - Compuertas exclusiva, paralela, inclusiva, basada en eventos y compleja, con condiciones y flujos por defecto.
 - Retrabajos (ciclos).
 
@@ -100,7 +108,6 @@ El formato de la spec y las reglas de modelado están en [SKILL.md](SKILL.md).
 ## ⚠️ Limitaciones
 
 - El `.bpm` nativo de Bizagi no se lee directamente: hay que exportarlo a BPMN.
-- No genera eventos adjuntos (boundary). Al leerlos, los convierte en eventos intermedios.
 - Los subprocesos se generan contraídos.
 
 ## 📄 Licencia

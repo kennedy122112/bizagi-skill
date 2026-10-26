@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.1.0-0a7bbb?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.2.0-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agents" src="https://img.shields.io/badge/agents-3-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -43,6 +43,12 @@ The agent interprets it, writes a spec, validates it and generates **BPMN 2.0 wi
   <img alt="Process imported into Bizagi Modeler" src="docs/importado-en-bizagi.jpg" width="100%">
 </p>
 
+It also handles deadlines, exceptions, documents and systems. For example, a complaint-handling process with boundary timers, a delivery error, a complaints register and a note about the legal deadline:
+
+<p align="center">
+  <img alt="Complaint handling imported into Bizagi Modeler" src="docs/bizagi-reclamos.jpg" width="100%">
+</p>
+
 ## 🧰 Commands
 
 | Command | Purpose |
@@ -56,7 +62,9 @@ The agent interprets it, writes a spec, validates it and generates **BPMN 2.0 wi
 **Supports:**
 - Pools and lanes, including external (black-box) pools, and message flows.
 - Events: start, end, timer, message, signal, error and terminate.
+- Boundary events on a task (timer, message, signal, conditional or error), interrupting or not.
 - Every task type, and sub-processes.
+- Data objects, data stores and annotations, linked by input and output associations.
 - Exclusive, parallel, inclusive, event-based and complex gateways, with conditions and default flows.
 - Rework loops.
 
@@ -102,7 +110,6 @@ The spec format and the modeling rules are described in [SKILL.md](SKILL.md).
 ## ⚠️ Limitations
 
 - It can't read Bizagi's native `.bpm` file. Export the model to BPMN first.
-- It doesn't generate boundary events. When it reads one, it turns it into an intermediate event.
 - Sub-processes are generated collapsed.
 
 ## 📄 License
