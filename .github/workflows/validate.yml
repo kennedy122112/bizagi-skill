@@ -1,0 +1,30 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Validar y generar los ejemplos
+        run: |
+          set -e
+          for spec in examples/*.json; do
+            python scripts/bizagi_cli.py validate "$spec"
+            python scripts/bizagi_cli.py generate "$spec" -o /tmp/out.bpmn --svg /tmp/out.svg
+            python scripts/bizagi_cli.py read /tmp/out.bpmn -o /tmp/roundtrip.json
+            python scripts/bizagi_cli.py validate /tmp/roundtrip.json
+            python scripts/bizagi_cli.py doc /tmp/out.bpmn -o /tmp/out.md
+          done
+          for bpmn in examples/*.bpmn; do
+            python scripts/bizagi_cli.py validate "$bpmn"
+          done
