@@ -66,3 +66,7 @@ El formato de la spec y las reglas de modelado están en [SKILL.md](SKILL.md).
 - El `.bpm` nativo de Bizagi no se lee directamente: hay que exportarlo a BPMN.
 - No genera eventos adjuntos (boundary). Al leerlos, los convierte en eventos intermedios.
 - Los subprocesos se generan contraídos.
+
+## Licencia
+
+[MIT](LICENSE)
