@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.4.1-0a7bbb?style=for-the-badge">
+  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.5.0-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agentes" src="https://img.shields.io/badge/agentes-3-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -55,6 +55,31 @@ Y con plazos, excepciones, documentos y sistemas, por ejemplo una atención de r
 
 Ejemplos: [atencion-reclamos.docx](docs/atencion-reclamos.docx) · [solicitud-compra.docx](docs/solicitud-compra.docx)
 
+## 🎨 Plantilla propia
+
+Usa el Word de tu organización (o cualquier `.docx` o `.dotx`) como plantilla:
+
+```bash
+python scripts/bizagi_cli.py docx proceso.json -o entregable.docx --template mi-plantilla.docx
+```
+
+De tu plantilla se conserva todo: logo, encabezados y pies, carátula, control de versiones, firmas, márgenes y estilos. El contenido del proceso usa tus estilos de título, aunque el Word esté en otro idioma, y las tablas toman el color de tus títulos.
+
+Escribe estos **marcadores** donde quieras en la plantilla, también en encabezados y pies:
+
+| Marcador | Se reemplaza por |
+|---|---|
+| `{{CONTENIDO}}` | Todo el contenido del proceso: objetivo, roles, diagrama, actividades, flujo… Sin este marcador, el contenido se agrega al final. |
+| `{{nombre}}` | Nombre del proceso |
+| `{{codigo}}` `{{version}}` `{{fecha}}` | Datos de `meta` en la spec. La fecha, si falta, es la de hoy. |
+| `{{responsable}}` `{{area}}` | Datos de `meta` |
+| `{{elaborado}}` `{{revisado}}` `{{aprobado}}` | Datos de `meta`, para el bloque de firmas |
+| `{{cualquier_clave}}` | Cualquier otra clave que pongas en `meta` |
+
+Los datos que falten aparecen como "Por completar". Si la plantilla ya tiene `{{nombre}}`, no se repite el título del proceso; y si tiene marcadores de ficha, no se agrega la ficha propia.
+
+En [`plantillas/plantilla-ejemplo.docx`](plantillas/plantilla-ejemplo.docx) hay una plantilla neutra de punto de partida, con carátula, control de versiones, aprobaciones y encabezado y pie con marcadores. Resultado de ejemplo: [atencion-reclamos-plantilla.docx](docs/atencion-reclamos-plantilla.docx).
+
 ## 🧰 Comandos
 
 | Comando | Para qué |
@@ -64,7 +89,7 @@ Ejemplos: [atencion-reclamos.docx](docs/atencion-reclamos.docx) · [solicitud-co
 | `validate spec.json\|modelo.bpmn` | Reglas de modelado: inicios y fines, compuertas sin etiquetas, nodos inalcanzables… |
 | `preview spec.json\|modelo.bpmn -o vista.svg` | Diagrama SVG para revisar sin abrir Bizagi |
 | `doc spec.json\|modelo.bpmn -o doc.md` | Documentación del proceso: roles, actividades y secuencia |
-| `docx spec.json\|modelo.bpmn -o proceso.docx` | **Documento Word**: ficha, diagrama, actividades, decisiones, excepciones, documentos y externos |
+| `docx spec.json\|modelo.bpmn -o proceso.docx [--template plantilla.docx]` | **Documento Word**: ficha, diagrama, actividades, decisiones, excepciones, documentos y externos |
 
 **Soporta:**
 - Pools y carriles, incluidos pools externos (caja negra), y flujos de mensaje.

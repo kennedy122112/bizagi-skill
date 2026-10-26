@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.0 — 2026-10-26
+
+### Nuevo
+- **`docx --template`**: cualquier `.docx` o `.dotx` sirve de plantilla, sin depender de un formato institucional en particular.
+  - Se conservan la carátula, los logos, los encabezados y pies, los márgenes y los estilos.
+  - `{{CONTENIDO}}` marca dónde va el proceso; sin él, el proceso se agrega al final.
+  - `{{nombre}}`, `{{codigo}}`, `{{version}}`, `{{fecha}}`, `{{responsable}}`, `{{area}}`, `{{elaborado}}`, `{{revisado}}`, `{{aprobado}}` y cualquier clave de `meta` se rellenan, también en encabezados y pies, aunque Word haya partido el marcador en varios fragmentos.
+  - Los títulos usan los estilos de la plantilla, buscados por su nombre interno, así que funciona aunque Word esté en otro idioma (en español el identificador es `Ttulo1`). Si la plantilla numera sus títulos, no se numeran de nuevo.
+  - Las tablas toman el color del título 1 o del acento del tema.
+  - Las secciones copian la configuración de página de la plantilla y solo cambian la orientación (horizontal o A3) para el diagrama y las tablas anchas.
+- `plantillas/plantilla-ejemplo.docx`: plantilla neutra con carátula, control de versiones, aprobaciones y encabezado y pie con marcadores.
+
+### Correcciones
+- Las imágenes declaran sus espacios de nombres de dibujo, necesarios al insertarlas en documentos creados por Word.
+
 ## 0.4.1 — 2026-10-26
 
 - Instalador de una línea para Windows (`install.ps1`) y para macOS, Linux y Git Bash (`install.sh`).

@@ -14,7 +14,7 @@ Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta d
 | `validate spec.json\|modelo.bpmn` | Revisa las reglas de modelado (errores y avisos) |
 | `preview spec.json\|modelo.bpmn -o vista.png` | Dibuja el diagrama sin abrir Bizagi (`.png` necesita Chrome o Edge; `.svg` siempre funciona) |
 | `doc spec.json\|modelo.bpmn -o doc.md` | Genera la documentación del proceso (roles, actividades, secuencia) |
-| `docx spec.json\|modelo.bpmn -o proceso.docx` | Genera un documento Word con ficha, diagrama, actividades, decisiones, excepciones, documentos y externos |
+| `docx spec.json\|modelo.bpmn -o proceso.docx [--template plantilla.docx]` | Genera un documento Word con ficha, diagrama, actividades, decisiones, excepciones, documentos y externos |
 
 ## Flujo de trabajo
 
@@ -46,6 +46,12 @@ Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta d
    - El diagrama se incrusta en SVG, con un PNG de respaldo si hay Chrome o Edge instalado.
    - Un diagrama grande va en hojas A3: una vista general y páginas de detalle legibles al imprimir.
    - La ficha se completa con `meta` en la spec: `codigo`, `version`, `responsable`, `area`, `elaborado`, `revisado`, `aprobado`, `fecha`.
+   - **Si el usuario tiene un formato propio** (el Word de su organización), usa `--template su-plantilla.docx`:
+     - se conservan su carátula, logos, encabezados, pies y estilos;
+     - `{{CONTENIDO}}` marca dónde va el proceso; sin ese marcador, el proceso se agrega al final;
+     - `{{nombre}}`, `{{codigo}}`, `{{version}}`, `{{fecha}}`, `{{responsable}}`, `{{elaborado}}`, `{{revisado}}`, `{{aprobado}}` y cualquier clave de `meta` se rellenan, también en encabezados y pies.
+
+     Si no tiene plantilla y quiere una, ofrécele `plantillas/plantilla-ejemplo.docx` para que la adapte.
 7. **Para modificar un modelo existente:** en Bizagi se usa **Exportar/Importar → Exportar → BPMN**. Luego `read` → editas la spec → `generate` → se importa de nuevo.
 
 ## Formato de la spec

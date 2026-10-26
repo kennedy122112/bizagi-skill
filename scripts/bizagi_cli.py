@@ -8,7 +8,8 @@ Comandos:
   validate <spec.json|modelo.bpmn>                         reglas de modelado
   preview  <spec.json|modelo.bpmn> -o vista.svg            diagrama SVG para revisar sin abrir Bizagi
   doc      <spec.json|modelo.bpmn> [-o doc.md]             documentación Markdown del proceso
-  docx     <spec.json|modelo.bpmn> -o doc.docx             documento Word con diagrama y tablas
+  docx     <spec.json|modelo.bpmn> -o doc.docx [--template plantilla.docx]
+                                                           documento Word con diagrama y tablas
 """
 import argparse
 import html
@@ -21,7 +22,7 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict, deque
 from pathlib import Path
 
-VERSION = "0.4.1"
+VERSION = "0.5.0"
 
 NS = {
     "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",
@@ -1586,6 +1587,8 @@ HEAD_FILL = "E8601C"
 PORTRAIT, LANDSCAPE = (11906, 16838), (16838, 11906)   # A4 en twips
 A3_LANDSCAPE = (23811, 16838)
 MIN_TEXT_PX_PER_CM = 47   # escala mínima de impresión: el texto de 10 px queda en ~6 pt
+DOCX_STYLE = {}           # estilo propio -> styleId de la plantilla (vacío: estilos propios)
+DOCX_THEME = {"fill": HEAD_FILL}
 MARGIN = 1134                                           # 2 cm
 
 
@@ -1610,7 +1613,7 @@ def w_run(text, style="", size=None, color=None):
 def w_para(runs="", style=None, align=None, indent=None):
     ppr = ""
     if style:
-        ppr += f'<w:pStyle w:val="{style}"/>'
+        ppr += f'<w:pStyle w:val="{DOCX_STYLE.get(style, style)}"/>'
     if indent:
         ppr += f'<w:ind w:left="{indent}"/>'
     if align:
@@ -1622,13 +1625,13 @@ def w_table(headers, rows, widths):
     grid = "".join(f'<w:gridCol w:w="{w}"/>' for w in widths)
 
     def cell(text, w, head=False):
-        shade = f'<w:shd w:val="clear" w:color="auto" w:fill="{HEAD_FILL}"/>' if head else ""
+        shade = f'<w:shd w:val="clear" w:color="auto" w:fill="{DOCX_THEME["fill"]}"/>' if head else ""
         paras = "".join(w_para(w_run(line, "b" if head else "", color="FFFFFF" if head else None),
                                style="Celda")
                         for line in (str(text) if text not in (None, "") else "—").split("\n"))
         return f'<w:tc><w:tcPr><w:tcW w:w="{w}" w:type="dxa"/>{shade}</w:tcPr>{paras}</w:tc>'
 
-    out = [f'<w:tbl><w:tblPr><w:tblStyle w:val="Tabla"/><w:tblW w:w="{sum(widths)}" w:type="dxa"/>'
+    out = [f'<w:tbl><w:tblPr><w:tblStyle w:val="{DOCX_STYLE.get("Tabla", "Tabla")}"/><w:tblW w:w="{sum(widths)}" w:type="dxa"/>'
            f'<w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>{grid}</w:tblGrid>',
            '<w:tr><w:trPr><w:tblHeader/><w:cantSplit/></w:trPr>'
            + "".join(cell(h, w, True) for h, w in zip(headers, widths)) + "</w:tr>"]
@@ -1659,11 +1662,13 @@ def w_image(cx, cy, png_rid, svg_rid, alt="", pid=1):
         svg_ext = ('<a:extLst><a:ext uri="{96DAC541-7B7A-43D3-8B79-37D633B846F1}">'
                    '<asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" '
                    f'r:embed="{svg_rid}"/></a:ext></a:extLst>')
-    return (f'<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
+    return (f'<w:r><w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
+            f'distT="0" distB="0" distL="0" distR="0">'
             f'<wp:extent cx="{cx}" cy="{cy}"/><wp:docPr id="{pid}" name="Diagrama {pid}" descr="{x(alt)}"/>'
-            f'<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>'
-            f'<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
-            f'<pic:pic><pic:nvPicPr><pic:cNvPr id="{pid}" name="diagrama{pid}.png"/><pic:cNvPicPr/></pic:nvPicPr>'
+            f'<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>'
+            f'<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+            f'<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+            f'<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="{pid}" name="diagrama{pid}.png"/><pic:cNvPicPr/></pic:nvPicPr>'
             f'<pic:blipFill><a:blip r:embed="{png_rid}">{svg_ext}</a:blip>'
             f'<a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
             f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
@@ -1729,132 +1734,7 @@ META_ES = {"codigo": "Código", "version": "Versión", "responsable": "Responsab
            "aprobado": "Aprobado por", "fecha": "Fecha"}
 
 
-def render_docx(spec, geo, out_path, png=True):
-    import datetime
-    import zipfile
-    S = summarize(spec, geo)
-    svg = render_svg(spec, geo)
-    W, H = geo["size"]
-    # si en A4 el texto quedaría ilegible al imprimir: hojas A3 con vista general + detalle en mosaico
-    a4_w_cm = (LANDSCAPE[0] - 2 * MARGIN) / 567
-    a4_h_cm = (LANDSCAPE[1] - 2 * MARGIN - 1400) / 567
-    big = W / a4_w_cm > MIN_TEXT_PX_PER_CM * 1.6 or H / a4_h_cm > MIN_TEXT_PX_PER_CM * 1.6
-    diag_page = A3_LANDSCAPE if big else LANDSCAPE
-    views = [(svg, W, H, "vista general" if big else "")]
-    if big:
-        tile_w = (A3_LANDSCAPE[0] - 2 * MARGIN) / 567 * MIN_TEXT_PX_PER_CM
-        tile_h = (A3_LANDSCAPE[1] - 2 * MARGIN - 1400) / 567 * MIN_TEXT_PX_PER_CM
-        cols, rows = math.ceil(W / tile_w), math.ceil(H / tile_h)
-        n = cols * rows
-        for r_ in range(rows):
-            for c_ in range(cols):
-                x0, x1 = max(0, c_ * W / cols - 30), min(W, (c_ + 1) * W / cols + 30)
-                y0, y1 = max(0, r_ * H / rows - 30), min(H, (r_ + 1) * H / rows + 30)
-                views.append((crop_svg(svg, x0, x1 - x0, y1 - y0, y0), x1 - x0, y1 - y0,
-                              f"detalle {r_ * cols + c_ + 1} de {n}"))
-    images = []
-    for vs, vw, vh, label in views:
-        img = svg_to_png(vs, (vw, vh)) if png else None
-        images.append((vs, img, vw, vh, label))
-    has_png = all(img is not None for _, img, _, _, _ in images)
-    today = datetime.date.today().isoformat()
-
-    pw = PORTRAIT[0] - 2 * MARGIN
-    lw = LANDSCAPE[0] - 2 * MARGIN
-    body = [w_para(w_run(S["name"]), "Title"),
-            w_para(w_run("Documentación del proceso"), "Subtitle")]
-    standard = ["codigo", "version", "responsable", "elaborado", "revisado", "aprobado", "fecha"]
-    given = dict(S["meta"])
-    given.setdefault("fecha", today)
-    meta = [(META_ES[k], given.pop(k, "") or "Por completar") for k in standard]
-    meta += [(META_ES.get(k, k.capitalize()), v) for k, v in given.items()]
-    body.append(w_table(["Dato", "Valor"], meta, scale_widths([1, 2.4], pw)))
-
-    sec = 0
-
-    def h1(text):
-        nonlocal sec
-        sec += 1
-        return w_para(w_run(f"{sec}. {text}"), "Heading1")
-
-    body.append(h1("Objetivo y alcance"))
-    body.append(w_para(w_run(S["doc"] or "Sin descripción registrada.")))
-    body.append(h1("Roles y responsabilidades"))
-    if sum(1 for p in spec["pools"] if not p["blackbox"]) > 1:
-        body.append(w_table(["Rol", "Participante", "Actividades a cargo", "Descripción"],
-                            S["roles"], scale_widths([1.3, 1.1, 2.6, 1.6], pw)))
-    else:
-        body.append(w_table(["Rol", "Actividades a cargo", "Descripción"],
-                            [(r, a, d) if p != "Externo" else (r, "Participante externo", d)
-                             for r, p, a, d in S["roles"]], scale_widths([1.3, 2.8, 1.8], pw)))
-    # fin de la sección vertical; lo que sigue va en horizontal
-    body.append(f"<w:p><w:pPr>{w_section(PORTRAIT)}</w:pPr></w:p>")
-
-    # diagrama en horizontal, ajustado al área útil de la página
-    body.append(h1("Diagrama del proceso"))
-    max_cx = (diag_page[0] - 2 * MARGIN) * 635
-    max_cy = (diag_page[1] - 2 * MARGIN - 1400) * 635
-    for k, (_, _, vw, vh, label) in enumerate(images, 1):
-        if k > 1:
-            body.append('<w:p><w:r><w:br w:type="page"/></w:r></w:p>')
-        s = min(max_cx / (vw * 9525), max_cy / (vh * 9525), 1.0)
-        cx, cy = int(vw * 9525 * s), int(vh * 9525 * s)
-        body.append(w_para(w_image(cx, cy, f"rIdPng{k}", f"rIdSvg{k}", pid=k,
-                                   alt=f"Diagrama BPMN del proceso {S['name']} {label}".strip()),
-                           align="center"))
-        cap = f"Figura 1{'.' + str(k - 1) if k > 1 else ''}. {S['name']}" + (f" ({label})" if label else "")
-        if k == 1:
-            cap += (". El archivo .bpmn se importa en Bizagi Modeler desde Exportar/Importar → "
-                    "Importar → BPMN.")
-        body.append(w_para(w_run(cap), "Caption"))
-    # el diagrama cierra su propia sección (A4 o A3 horizontal)
-    body.append(f"<w:p><w:pPr>{w_section(diag_page)}</w:pPr></w:p>")
-
-    body.append(h1("Descripción de actividades"))
-    body.append(w_table(["N.º", "Actividad", "Tipo", "Responsable", "Entradas", "Salidas", "Sistemas",
-                         "Descripción"],
-                        [(k, a["name"], a["type"], a["who"], a["ins"], a["outs"], a["systems"], a["desc"])
-                         for k, a in enumerate(S["activities"], 1)],
-                        scale_widths([0.45, 1.9, 1.2, 1.3, 1.4, 1.4, 1.3, 3.2], lw)))
-    body.append(h1("Flujo del proceso"))
-    for level, segs in S["sequence"]:
-        body.append(w_para(w_run("• " if level == 0 else "– ")
-                           + "".join(w_run(t, st) for t, st in segs), indent=360 + 400 * level))
-    if S["decisions"]:
-        body.append(h1("Reglas de decisión"))
-        body.append(w_table(["Decisión", "Responsable", "Condición", "Continúa en"], S["decisions"],
-                            scale_widths([2, 1.5, 2.5, 2], lw)))
-    if S["exceptions"]:
-        body.append(h1("Excepciones y plazos"))
-        body.append(w_table(["Actividad", "Evento", "Tipo", "Plazo", "Interrumpe", "Acción"],
-                            S["exceptions"], scale_widths([1.8, 2, 1, 0.9, 0.9, 2], lw)))
-    if S["data"]:
-        body.append(h1("Documentos y sistemas"))
-        body.append(w_table(["Elemento", "Tipo", "Lo usan (entrada)", "Lo generan o actualizan"], S["data"],
-                            scale_widths([2, 1.3, 2.5, 2.5], lw)))
-    if S["messages"]:
-        body.append(h1("Interacciones con externos"))
-        body.append(w_table(["Origen", "Mensaje", "Destino"], S["messages"],
-                            scale_widths([2, 2, 2], lw)))
-    if S["notes"]:
-        body.append(h1("Notas"))
-        body.append(w_table(["Elemento", "Nota"], S["notes"], scale_widths([1, 3], lw)))
-    if S["assumptions"] or S["questions"]:
-        body.append(h1("Supuestos y puntos por validar"))
-        rows = [("Supuesto", a) for a in S["assumptions"]] + [("Por validar", q) for q in S["questions"]]
-        body.append(w_table(["Tipo", "Detalle"], rows, scale_widths([1, 5], lw)))
-    if not has_png:
-        body.append(w_para(w_run("Nota: el diagrama se incrustó como SVG (Word 2016 o superior). "
-                                 "Para una imagen de respaldo instale Chrome o Edge y vuelva a generar.",
-                                 "i", size=16, color="6B7280")))
-
-    document = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document {DOCX_NS}>'
-                f'<w:body>{"".join(body)}{w_section(LANDSCAPE)}</w:body></w:document>')
-    footer = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr {DOCX_NS}>'
-              f'<w:p><w:pPr><w:pStyle w:val="Footer"/><w:jc w:val="right"/></w:pPr>'
-              f'{w_run(S["name"] + "  ·  Página ")}<w:fldSimple w:instr=" PAGE "><w:r><w:t>1</w:t></w:r>'
-              f'</w:fldSimple></w:p></w:ftr>')
-    styles = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+STYLES_XML = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
 <w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/>
 <w:sz w:val="21"/><w:szCs w:val="21"/><w:lang w:val="es-PE"/></w:rPr></w:rPrDefault>
@@ -1883,6 +1763,154 @@ def render_docx(spec, geo, out_path, png=True):
 <w:insideH w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/><w:insideV w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/></w:tblBorders>
 <w:tblCellMar><w:top w:w="50" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="50" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>
 </w:styles>'''
+
+# estilo propio -> nombre interno de Word (igual en todos los idiomas; el styleId cambia: "Ttulo1", "berschrift1"…)
+STYLE_NAMES = {"Title": "title", "Subtitle": "subtitle", "Heading1": "heading 1", "Caption": "caption"}
+META_KEYS = ["codigo", "version", "responsable", "area", "elaborado", "revisado", "aprobado", "fecha"]
+REL_IMAGE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
+
+
+def docx_images(spec, geo, png):
+    """Vistas del diagrama: una sola, o vista general + mosaico A3 si en A4 sería ilegible."""
+    svg = render_svg(spec, geo)
+    W, H = geo["size"]
+    a4_w_cm = (LANDSCAPE[0] - 2 * MARGIN) / 567
+    a4_h_cm = (LANDSCAPE[1] - 2 * MARGIN - 1400) / 567
+    big = W / a4_w_cm > MIN_TEXT_PX_PER_CM * 1.6 or H / a4_h_cm > MIN_TEXT_PX_PER_CM * 1.6
+    views = [(svg, W, H, "vista general" if big else "")]
+    if big:
+        tile_w = (A3_LANDSCAPE[0] - 2 * MARGIN) / 567 * MIN_TEXT_PX_PER_CM
+        tile_h = (A3_LANDSCAPE[1] - 2 * MARGIN - 1400) / 567 * MIN_TEXT_PX_PER_CM
+        cols, rows = math.ceil(W / tile_w), math.ceil(H / tile_h)
+        n = cols * rows
+        for r_ in range(rows):
+            for c_ in range(cols):
+                x0, x1 = max(0, c_ * W / cols - 30), min(W, (c_ + 1) * W / cols + 30)
+                y0, y1 = max(0, r_ * H / rows - 30), min(H, (r_ + 1) * H / rows + 30)
+                views.append((crop_svg(svg, x0, x1 - x0, y1 - y0, y0), x1 - x0, y1 - y0,
+                              f"detalle {r_ * cols + c_ + 1} de {n}"))
+    images = [(vs, svg_to_png(vs, (vw, vh)) if png else None, vw, vh, label) for vs, vw, vh, label in views]
+    return images, big
+
+
+def docx_body(spec, S, images, ctx):
+    """Cuerpo del documento. ctx define páginas, secciones y qué partes incluir."""
+    import datetime
+    pw, lw = ctx["pw"], ctx["lw"]
+    body = []
+    if ctx["title"]:
+        body += [w_para(w_run(S["name"]), "Title"), w_para(w_run("Documentación del proceso"), "Subtitle")]
+    if ctx["ficha"]:
+        given = dict(S["meta"])
+        given.setdefault("fecha", datetime.date.today().isoformat())
+        standard = [k for k in META_KEYS if k != "area"]
+        meta = [(META_ES[k], given.pop(k, "") or "Por completar") for k in standard]
+        meta += [(META_ES.get(k, k.capitalize()), v) for k, v in given.items()]
+        body.append(w_table(["Dato", "Valor"], meta, scale_widths([1, 2.4], pw)))
+    sec = 0
+
+    def h1(text):
+        nonlocal sec
+        sec += 1
+        return w_para(w_run(f"{sec}. {text}" if ctx["number"] else text), "Heading1")
+
+    body.append(h1("Objetivo y alcance"))
+    body.append(w_para(w_run(S["doc"] or "Sin descripción registrada.")))
+    body.append(h1("Roles y responsabilidades"))
+    if sum(1 for p in spec["pools"] if not p["blackbox"]) > 1:
+        body.append(w_table(["Rol", "Participante", "Actividades a cargo", "Descripción"],
+                            S["roles"], scale_widths([1.3, 1.1, 2.6, 1.6], pw)))
+    else:
+        body.append(w_table(["Rol", "Actividades a cargo", "Descripción"],
+                            [(r, a, d) if p != "Externo" else (r, "Participante externo", d)
+                             for r, p, a, d in S["roles"]], scale_widths([1.3, 2.8, 1.8], pw)))
+    # fin de la sección vertical; el diagrama va en horizontal (A4 o A3)
+    body.append(f"<w:p><w:pPr>{ctx['sect_portrait']}</w:pPr></w:p>")
+    body.append(h1("Diagrama del proceso"))
+    max_cx, max_cy = ctx["diag_box"]
+    for k, (_, _, vw, vh, label) in enumerate(images, 1):
+        if k > 1:
+            body.append('<w:p><w:r><w:br w:type="page"/></w:r></w:p>')
+        s = min(max_cx / (vw * 9525), max_cy / (vh * 9525), 1.0)
+        png_rid, svg_rid = ctx["rids"](k)
+        body.append(w_para(w_image(int(vw * 9525 * s), int(vh * 9525 * s), png_rid, svg_rid,
+                                   pid=ctx["pid0"] + k,
+                                   alt=f"Diagrama BPMN del proceso {S['name']} {label}".strip()),
+                           align="center"))
+        cap = f"Figura 1{'.' + str(k - 1) if k > 1 else ''}. {S['name']}" + (f" ({label})" if label else "")
+        if k == 1:
+            cap += ". El archivo .bpmn se importa en Bizagi Modeler desde Exportar/Importar → Importar → BPMN."
+        body.append(w_para(w_run(cap), "Caption"))
+    body.append(f"<w:p><w:pPr>{ctx['sect_diagram']}</w:pPr></w:p>")
+
+    body.append(h1("Descripción de actividades"))
+    body.append(w_table(["N.º", "Actividad", "Tipo", "Responsable", "Entradas", "Salidas", "Sistemas",
+                         "Descripción"],
+                        [(k, a["name"], a["type"], a["who"], a["ins"], a["outs"], a["systems"], a["desc"])
+                         for k, a in enumerate(S["activities"], 1)],
+                        scale_widths([0.45, 1.9, 1.2, 1.3, 1.4, 1.4, 1.3, 3.2], lw)))
+    body.append(h1("Flujo del proceso"))
+    for level, segs in S["sequence"]:
+        body.append(w_para(w_run("• " if level == 0 else "– ")
+                           + "".join(w_run(t, st) for t, st in segs), indent=360 + 400 * level))
+    if S["decisions"]:
+        body.append(h1("Reglas de decisión"))
+        body.append(w_table(["Decisión", "Responsable", "Condición", "Continúa en"], S["decisions"],
+                            scale_widths([2, 1.5, 2.5, 2], lw)))
+    if S["exceptions"]:
+        body.append(h1("Excepciones y plazos"))
+        body.append(w_table(["Actividad", "Evento", "Tipo", "Plazo", "Interrumpe", "Acción"],
+                            S["exceptions"], scale_widths([1.8, 2, 1, 0.9, 0.9, 2], lw)))
+    if S["data"]:
+        body.append(h1("Documentos y sistemas"))
+        body.append(w_table(["Elemento", "Tipo", "Lo usan (entrada)", "Lo generan o actualizan"], S["data"],
+                            scale_widths([2, 1.3, 2.5, 2.5], lw)))
+    if S["messages"]:
+        body.append(h1("Interacciones con externos"))
+        body.append(w_table(["Origen", "Mensaje", "Destino"], S["messages"], scale_widths([2, 2, 2], lw)))
+    if S["notes"]:
+        body.append(h1("Notas"))
+        body.append(w_table(["Elemento", "Nota"], S["notes"], scale_widths([1, 3], lw)))
+    if S["assumptions"] or S["questions"]:
+        body.append(h1("Supuestos y puntos por validar"))
+        rows = [("Supuesto", a) for a in S["assumptions"]] + [("Por validar", q) for q in S["questions"]]
+        body.append(w_table(["Tipo", "Detalle"], rows, scale_widths([1, 5], lw)))
+    if not all(img for _, img, _, _, _ in images):
+        body.append(w_para(w_run("Nota: el diagrama se incrustó como SVG (Word 2016 o superior). "
+                                 "Para una imagen de respaldo instale Chrome o Edge y vuelva a generar.",
+                                 "i", size=16, color="6B7280")))
+    if ctx["sect_end"]:
+        body.append(f"<w:p><w:pPr>{ctx['sect_end']}</w:pPr></w:p>")
+    return body
+
+
+def render_docx(spec, geo, out_path, png=True, template=None):
+    S = summarize(spec, geo)
+    images, big = docx_images(spec, geo, png)
+    if template:
+        render_docx_template(spec, S, images, big, template, out_path)
+    else:
+        render_docx_standalone(S, spec, images, big, out_path)
+    return all(img for _, img, _, _, _ in images)
+
+
+def render_docx_standalone(S, spec, images, big, out_path):
+    import datetime
+    import zipfile
+    DOCX_STYLE.clear()
+    DOCX_THEME["fill"] = HEAD_FILL
+    diag_page = A3_LANDSCAPE if big else LANDSCAPE
+    ctx = {"pw": PORTRAIT[0] - 2 * MARGIN, "lw": LANDSCAPE[0] - 2 * MARGIN, "title": True, "ficha": True,
+           "number": True, "sect_portrait": w_section(PORTRAIT), "sect_diagram": w_section(diag_page),
+           "sect_end": "", "pid0": 0, "rids": lambda k: (f"rIdPng{k}", f"rIdSvg{k}"),
+           "diag_box": ((diag_page[0] - 2 * MARGIN) * 635, (diag_page[1] - 2 * MARGIN - 1400) * 635)}
+    body = docx_body(spec, S, images, ctx)
+    document = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document {DOCX_NS}>'
+                f'<w:body>{"".join(body)}{w_section(LANDSCAPE)}</w:body></w:document>')
+    footer = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr {DOCX_NS}>'
+              f'<w:p><w:pPr><w:pStyle w:val="Footer"/><w:jc w:val="right"/></w:pPr>'
+              f'{w_run(S["name"] + "  ·  Página ")}<w:fldSimple w:instr=" PAGE "><w:r><w:t>1</w:t></w:r>'
+              f'</w:fldSimple></w:p></w:ftr>')
     content_types = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
 <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
@@ -1902,18 +1930,15 @@ def render_docx(spec, geo, out_path, png=True):
 <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
 <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
 </Relationships>'''
-    doc_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-<Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
-<Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>
-</Relationships>'''
-    image_rels = "".join(
-        f'<Relationship Id="rIdPng{k}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" '
-        f'Target="media/diagrama{k}.png"/><Relationship Id="rIdSvg{k}" '
-        f'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" '
-        f'Target="media/diagrama{k}.svg"/>' for k in range(1, len(images) + 1))
-    doc_rels = doc_rels.replace("</Relationships>", image_rels + "</Relationships>")
+    doc_rels = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                '<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+                '<Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>'
+                '<Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>'
+                + "".join(f'<Relationship Id="rIdPng{k}" Type="{REL_IMAGE}" Target="media/diagrama{k}.png"/>'
+                          f'<Relationship Id="rIdSvg{k}" Type="{REL_IMAGE}" Target="media/diagrama{k}.svg"/>'
+                          for k in range(1, len(images) + 1))
+                + '</Relationships>')
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     core = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             f'<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" '
@@ -1931,7 +1956,7 @@ def render_docx(spec, geo, out_path, png=True):
         z.writestr("docProps/core.xml", core)
         z.writestr("docProps/app.xml", app)
         z.writestr("word/document.xml", document)
-        z.writestr("word/styles.xml", styles)
+        z.writestr("word/styles.xml", STYLES_XML)
         # modo de compatibilidad 15 (Word 2013+): sin él Word abre el archivo en "Modo de compatibilidad"
         z.writestr("word/settings.xml",
                    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -1943,7 +1968,170 @@ def render_docx(spec, geo, out_path, png=True):
         for k, (vs, img, _, _, _) in enumerate(images, 1):
             z.writestr(f"word/media/diagrama{k}.png", img or blank_png())
             z.writestr(f"word/media/diagrama{k}.svg", vs)
-    return has_png
+
+
+# ---------------------------------------------------------------- Word con plantilla
+
+def merge_placeholder_runs(xml):
+    """Word suele partir "{{codigo}}" en varios fragmentos; se juntan en uno por párrafo."""
+    def fix(m):
+        p = m.group(0)
+        texts = re.findall(r"<w:t(?:\s[^>]*)?>(.*?)</w:t>", p, re.S)
+        full = "".join(texts)
+        if "{{" not in full:
+            return p
+        first = [True]
+
+        def one(mt):
+            if first[0]:
+                first[0] = False
+                return f'<w:t xml:space="preserve">{full}</w:t>'
+            return "<w:t></w:t>"
+        return re.sub(r"<w:t(?:\s[^>]*)?>.*?</w:t>", one, p, flags=re.S)
+    return re.sub(r"<w:p\b[^>]*>.*?</w:p>", fix, xml, flags=re.S)
+
+
+def fill_placeholders(xml, values):
+    def rep(m):
+        key = m.group(1).strip().lower()
+        return x(values[key]) if key in values else m.group(0)
+    return re.sub(r"\{\{\s*([A-Za-zÁÉÍÓÚáéíóúñÑ_ ]+?)\s*\}\}", rep, xml)
+
+
+def template_style(styles, name):
+    for m in re.finditer(r'<w:style\b[^>]*w:styleId="([^"]+)"[^>]*>.*?</w:style>', styles, re.S):
+        nm = re.search(r'<w:name w:val="([^"]+)"', m.group(0))
+        if nm and nm.group(1).lower() == name:
+            return m.group(1), m.group(0)
+    return None, None
+
+
+def render_docx_template(spec, S, images, big, template, out_path):
+    import zipfile
+    with zipfile.ZipFile(template) as z:
+        files = {n: z.read(n) for n in z.namelist()}
+    if "word/document.xml" not in files:
+        raise SpecError(f"la plantilla no es un documento Word válido: {template}")
+    doc = files["word/document.xml"].decode("utf-8")
+    styles = files["word/styles.xml"].decode("utf-8") if "word/styles.xml" in files else STYLES_XML
+
+    # 1) estilos: usar los de la plantilla por su nombre interno; si faltan, se agregan los propios
+    ours = {m.group(1): m.group(0) for m in re.finditer(
+        r'<w:style\b[^>]*w:styleId="([^"]+)"[^>]*>.*?</w:style>', STYLES_XML, re.S)}
+    DOCX_STYLE.clear()
+    add = []
+    for key, wname in STYLE_NAMES.items():
+        sid, _ = template_style(styles, wname)
+        if sid:
+            DOCX_STYLE[key] = sid
+        else:
+            DOCX_STYLE[key] = "Bz" + key
+            add.append(ours[key].replace(f'w:styleId="{key}"', f'w:styleId="Bz{key}"')
+                       .replace('<w:basedOn w:val="Normal"/>', ""))
+    for key in ("Celda", "Tabla"):
+        DOCX_STYLE[key] = "Bz" + key
+        if f'w:styleId="Bz{key}"' not in styles:
+            add.append(ours[key].replace(f'w:styleId="{key}"', f'w:styleId="Bz{key}"')
+                       .replace('<w:basedOn w:val="Normal"/>', "").replace('<w:basedOn w:val="TableNormal"/>', ""))
+    styles = styles.replace("</w:styles>", "".join(add) + "</w:styles>")
+    _, h1 = template_style(styles, "heading 1")
+    numbered = bool(h1 and "<w:numPr>" in h1)
+    # color de cabecera de tablas: el del título 1 de la plantilla o el acento 1 de su tema
+    color = re.search(r'<w:color w:val="([0-9A-Fa-f]{6})"', h1 or "")
+    theme = next((v.decode("utf-8") for k, v in files.items() if k.startswith("word/theme/")), "")
+    accent = re.search(r"<a:accent1>\s*<a:srgbClr val=\"([0-9A-Fa-f]{6})\"", theme)
+    DOCX_THEME["fill"] = (color or accent).group(1) if (color or accent) else HEAD_FILL
+
+    # 2) marcadores {{...}} en el cuerpo, encabezados y pies
+    values = {k: S["meta"].get(k, "") or "Por completar" for k in META_KEYS}
+    values.update({k.lower(): v for k, v in S["meta"].items()})
+    if not S["meta"].get("fecha"):
+        import datetime
+        values["fecha"] = datetime.date.today().isoformat()
+    values["nombre"] = values["proceso"] = S["name"]
+    parts = [n for n in files if re.fullmatch(r"word/(document|header\d*|footer\d*)\.xml", n)]
+    merged = {n: merge_placeholder_runs(files[n].decode("utf-8")) for n in parts}
+    all_text = " ".join(merged.values()).lower()
+    has_name = any(f"{{{{{k}}}}}" in all_text.replace(" ", "") for k in ("nombre", "proceso"))
+    has_meta = any(f"{{{{{k}}}}}" in all_text.replace(" ", "") for k in META_KEYS)
+    for n in parts:
+        if n != "word/document.xml":
+            files[n] = fill_placeholders(merged[n], values).encode("utf-8")
+    doc = merged["word/document.xml"]
+
+    # 3) secciones: se copian las de la plantilla (encabezados, pies, márgenes) y solo cambia el papel
+    last = list(re.finditer(r"<w:sectPr\b.*?</w:sectPr>", doc, re.S))
+    if not last:
+        raise SpecError("la plantilla no tiene configuración de página (sectPr)")
+    base = last[-1].group(0)
+    pg = re.search(r"<w:pgSz\b[^>]*/>", base)
+    num = lambda attr, src, d: int(re.search(rf'w:{attr}="(\d+)"', src).group(1)) \
+        if src and re.search(rf'w:{attr}="(\d+)"', src) else d
+    pg_w, pg_h = num("w", pg.group(0) if pg else "", PORTRAIT[0]), num("h", pg.group(0) if pg else "", PORTRAIT[1])
+    if pg_w > pg_h:
+        pg_w, pg_h = pg_h, pg_w
+    mar = re.search(r"<w:pgMar\b[^>]*/>", base)
+    ml, mr = num("left", mar.group(0) if mar else "", MARGIN), num("right", mar.group(0) if mar else "", MARGIN)
+    mt, mb = num("top", mar.group(0) if mar else "", MARGIN), num("bottom", mar.group(0) if mar else "", MARGIN)
+
+    def sect(size, keep_first=False):
+        s = base
+        if not keep_first:
+            s = re.sub(r"<w:titlePg\b[^>]*/>", "", s)
+            s = re.sub(r"<w:pgNumType\b[^>]*/>", "", s)
+        orient = ' w:orient="landscape"' if size[0] > size[1] else ""
+        new_pg = f'<w:pgSz w:w="{size[0]}" w:h="{size[1]}"{orient}/>'
+        return re.sub(r"<w:pgSz\b[^>]*/>", new_pg, s) if pg else s.replace("</w:sectPr>", new_pg + "</w:sectPr>")
+
+    land = (pg_h, pg_w)
+    diag = A3_LANDSCAPE if big else land
+    k0 = 900
+    ctx = {"pw": pg_w - ml - mr, "lw": land[0] - ml - mr, "title": not has_name, "ficha": not has_meta,
+           "number": not numbered, "sect_portrait": sect((pg_w, pg_h), keep_first=True),
+           "sect_diagram": sect(diag), "pid0": k0,
+           "rids": lambda k: (f"rIdBzPng{k}", f"rIdBzSvg{k}"),
+           # los títulos de una plantilla suelen llevar más espacio que los propios: se reserva más alto
+           "diag_box": ((diag[0] - ml - mr) * 635, (diag[1] - mt - mb - 2600) * 635)}
+    holder = re.search(r"<w:p\b[^>]*>(?:(?!</w:p>).)*\{\{\s*CONTENIDO\s*\}\}.*?</w:p>", doc, re.S | re.I)
+    # con marcador, lo que sigue de la plantilla vuelve a su orientación; sin él, el documento termina en horizontal
+    ctx["sect_end"] = sect(land) if holder else ""
+    body = "".join(docx_body(spec, S, images, ctx))
+    if holder:
+        doc = doc[:holder.start()] + body + doc[holder.end():]
+    else:
+        last = list(re.finditer(r"<w:sectPr\b.*?</w:sectPr>\s*</w:body>", doc, re.S))[-1]
+        # si la plantilla termina con texto, el proceso empieza en página nueva
+        paras = re.findall(r"<w:p\b[^>]*>.*?</w:p>", doc[:last.start()], re.S)
+        if paras and re.search(r"<w:t(?:\s[^>]*)?>[^<]*\S", paras[-1]):
+            body = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>' + body
+        doc = doc[:last.start()] + body + sect(land) + "</w:body>" + doc[last.end():]
+    files["word/document.xml"] = fill_placeholders(doc, values).encode("utf-8")
+    files["word/styles.xml"] = styles.encode("utf-8")
+
+    # 4) imágenes del diagrama, relaciones y tipos de contenido
+    rels_name = "word/_rels/document.xml.rels"
+    rels = files[rels_name].decode("utf-8")
+    rels = rels.replace("</Relationships>", "".join(
+        f'<Relationship Id="rIdBzPng{k}" Type="{REL_IMAGE}" Target="media/bizagi_diagrama{k}.png"/>'
+        f'<Relationship Id="rIdBzSvg{k}" Type="{REL_IMAGE}" Target="media/bizagi_diagrama{k}.svg"/>'
+        for k in range(1, len(images) + 1)) + "</Relationships>")
+    files[rels_name] = rels.encode("utf-8")
+    ct = files["[Content_Types].xml"].decode("utf-8")
+    for ext, mime in (("png", "image/png"), ("svg", "image/svg+xml")):
+        if not re.search(rf'Extension="{ext}"', ct, re.I):
+            ct = ct.replace("</Types>", f'<Default Extension="{ext}" ContentType="{mime}"/></Types>')
+    # una plantilla .dotx se guarda como documento .docx
+    ct = ct.replace("wordprocessingml.template.main+xml", "wordprocessingml.document.main+xml")
+    files["[Content_Types].xml"] = ct.encode("utf-8")
+    for k, (vs, img, _, _, _) in enumerate(images, 1):
+        files[f"word/media/bizagi_diagrama{k}.png"] = img or blank_png()
+        files[f"word/media/bizagi_diagrama{k}.svg"] = vs.encode("utf-8")
+    order = ["[Content_Types].xml"] + [n for n in files if n != "[Content_Types].xml"]
+    with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as z:
+        for n in order:
+            z.writestr(n, files[n])
+
+
 
 
 # ---------------------------------------------------------------- CLI
@@ -1986,6 +2174,7 @@ def main(argv=None):
     dx.add_argument("file")
     dx.add_argument("-o", "--out", required=True)
     dx.add_argument("--no-png", action="store_true", help="no rasterizar el diagrama (solo SVG)")
+    dx.add_argument("--template", help="documento .docx/.dotx propio para usar como plantilla")
     a = ap.parse_args(argv)
     try:
         if a.cmd == "read":
@@ -2034,7 +2223,7 @@ def main(argv=None):
             print(f"AVISO diagrama: {geo['issues']} línea(s) no pudieron evitar cruzar un elemento; "
                   "revise la vista previa (reordenar carriles o nodos suele resolverlo)")
         elif a.cmd == "docx":
-            has_png = render_docx(spec, geo, a.out, png=not a.no_png)
+            has_png = render_docx(spec, geo, a.out, png=not a.no_png, template=a.template)
             print(f"documento Word en {a.out}"
                   + ("" if has_png else " (diagrama solo en SVG: requiere Word 2016 o superior)"))
         elif a.cmd == "doc":

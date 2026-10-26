@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.4.1-0a7bbb?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.5.0-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agents" src="https://img.shields.io/badge/agents-3-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -55,6 +55,31 @@ It also handles deadlines, exceptions, documents and systems. For example, a com
 
 Samples: [atencion-reclamos.docx](docs/atencion-reclamos.docx) · [solicitud-compra.docx](docs/solicitud-compra.docx)
 
+## 🎨 Your own template
+
+Use your organization's Word document (or any `.docx` or `.dotx`) as a template:
+
+```bash
+python scripts/bizagi_cli.py docx process.json -o deliverable.docx --template my-template.docx
+```
+
+Everything in your template is kept: logo, headers and footers, cover page, version history, signatures, margins and styles. The process content uses your heading styles, even if Word runs in another language, and the tables take your heading color.
+
+Put these **placeholders** anywhere in the template, including headers and footers:
+
+| Placeholder | Replaced with |
+|---|---|
+| `{{CONTENIDO}}` | All the process content: objective, roles, diagram, activities, flow… Without this placeholder, the content is appended at the end. |
+| `{{nombre}}` | Process name |
+| `{{codigo}}` `{{version}}` `{{fecha}}` | Values from `meta` in the spec. The date defaults to today. |
+| `{{responsable}}` `{{area}}` | Values from `meta` |
+| `{{elaborado}}` `{{revisado}}` `{{aprobado}}` | Values from `meta`, for the sign-off block |
+| `{{any_key}}` | Any other key you add to `meta` |
+
+Missing values appear as "Por completar". If the template already has `{{nombre}}`, the process title isn't repeated; if it has summary-sheet placeholders, the built-in summary sheet is left out.
+
+[`plantillas/plantilla-ejemplo.docx`](plantillas/plantilla-ejemplo.docx) is a neutral starting template with a cover page, version history, approvals, and a header and footer with placeholders. Sample output: [atencion-reclamos-plantilla.docx](docs/atencion-reclamos-plantilla.docx).
+
 ## 🧰 Commands
 
 | Command | Purpose |
@@ -64,7 +89,7 @@ Samples: [atencion-reclamos.docx](docs/atencion-reclamos.docx) · [solicitud-com
 | `validate spec.json\|model.bpmn` | Modeling rules: start and end events, unlabeled gateway outputs, unreachable nodes… |
 | `preview spec.json\|model.bpmn -o preview.svg` | SVG diagram to review without opening Bizagi |
 | `doc spec.json\|model.bpmn -o doc.md` | Process documentation: roles, activities and sequence |
-| `docx spec.json\|model.bpmn -o process.docx` | **Word document**: summary sheet, diagram, activities, decisions, exceptions, documents and external parties |
+| `docx spec.json\|model.bpmn -o process.docx [--template template.docx]` | **Word document**: summary sheet, diagram, activities, decisions, exceptions, documents and external parties |
 
 **Supports:**
 - Pools and lanes, including external (black-box) pools, and message flows.
