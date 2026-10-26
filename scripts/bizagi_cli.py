@@ -21,7 +21,7 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict, deque
 from pathlib import Path
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 NS = {
     "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",
@@ -126,6 +126,12 @@ def size_of(t):
     return SIZE.get(t) or SIZE[kind(t)]
 
 
+def node_size(n):
+    if n["type"] == "annotation":
+        return (140, max(40, 13 * len(wrap(n["text"], 24)) + 14))
+    return size_of(n["type"])
+
+
 class SpecError(Exception):
     pass
 
@@ -181,6 +187,8 @@ def normalize_spec(raw):
     spec = {"name": raw.get("name") or "Proceso",
             "doc": raw.get("doc") or raw.get("documentation") or "",
             "meta": {k: str(v) for k, v in (raw.get("meta") or {}).items()},
+            "assumptions": list(raw.get("assumptions") or []),
+            "questions": list(raw.get("questions") or raw.get("openQuestions") or []),
             "pools": [], "nodes": [], "flows": [], "messageFlows": [], "associations": [],
             "_errors": errors, "_warnings": []}
     ids = IdMaker()
@@ -191,9 +199,10 @@ def normalize_spec(raw):
         if isinstance(p, str):
             p = {"name": p}
         lanes = [l if isinstance(l, str) else l["name"] for l in p.get("lanes", [])]
+        lane_docs = {l["name"]: l.get("doc", "") for l in p.get("lanes", []) if isinstance(l, dict)}
         spec["pools"].append({
             "id": ids.make(p.get("id") or "Pool_" + p["name"]), "orig": p.get("id") or p["name"],
-            "name": p["name"], "lanes": lanes, "doc": p.get("doc", ""),
+            "name": p["name"], "lanes": lanes, "laneDocs": lane_docs, "doc": p.get("doc", ""),
             "blackbox": bool(p.get("blackbox")),
         })
     live_pools = [p for p in spec["pools"] if not p["blackbox"]]
@@ -246,7 +255,7 @@ def normalize_spec(raw):
             "text": n.get("text") or (n.get("name", "") if t == "annotation" else ""),
             "pool": pool["id"] if pool else None, "lane": lane, "inherit": bool(inherit),
             "doc": n.get("doc") or n.get("documentation") or "",
-            "timer": n.get("timer") or "",
+            "timer": n.get("timer") or "", "deadline": n.get("deadline") or "",
             "attachedTo": attached, "interrupting": n.get("interrupting", True) is not False,
         })
 
@@ -536,7 +545,7 @@ def layout(spec):
             if lane is not None:
                 geo["lanes"][(p["id"], lane)] = (X0 + POOL_HDR, y, pool_w - POOL_HDR, lh)
             for i in mine:
-                w, h = size_of(nodes[i]["type"])
+                w, h = node_size(nodes[i])
                 cx = X0 + POOL_HDR + LEFT_PAD + col[i] * COL_W + COL_W / 2
                 cy = y + LANE_PAD + ROW_H / 2 + row[i] * ROW_H
                 geo["nodes"][i] = (cx - w / 2, cy - h / 2, w, h)
@@ -564,16 +573,21 @@ def layout(spec):
         cx = x + w - 20 - k * 34
         geo["nodes"][b] = (cx - bw / 2, yy + hh - bh / 2, bw, bh)
 
-    obstacles = [geo["nodes"][i] for i in placed if i in geo["nodes"]]
+    # pasillos verticales entre columnas: por ahí pueden correr las líneas sin tocar nodos
+    chans = [X0 + POOL_HDR + LEFT_PAD + k * COL_W for k in range(max_col + 2)]
+    router = Router({i: geo["nodes"][i] for i in placed if i in geo["nodes"]}, chans)
     for f in spec["flows"]:
         s, t = f["source"], f["target"]
         if s in geo["nodes"] and t in geo["nodes"]:
-            geo["edges"][f["id"]] = route_seq(
+            skip = {s, t, anchor(s), anchor(t)}
+            geo["edges"][f["id"]] = router.pick(seq_candidates(
                 geo["nodes"][s], geo["nodes"][t], kind(nodes[s]["type"]), kind(nodes[t]["type"]),
-                f["id"] in back or anchor(s) == anchor(t), bool(nodes[s]["attachedTo"]), obstacles)
+                f["id"] in back or anchor(s) == anchor(t), bool(nodes[s]["attachedTo"]), chans), skip)
     pool_of = {n["id"]: n["pool"] for n in spec["nodes"]}
     for f in spec["messageFlows"]:
-        geo["edges"][f["id"]] = route_msg(f, geo, pool_of)
+        geo["edges"][f["id"]] = router.pick(msg_candidates(f, geo, pool_of, chans),
+                                            {f["source"], f["target"]})
+    geo["issues"] = router.issues
     for a in spec["associations"]:
         S, T = geo["nodes"].get(a["source"]), geo["nodes"].get(a["target"])
         if S and T:
@@ -613,46 +627,134 @@ def side_point(B, P):
     return (x + w if dx > 0 else x, cy)
 
 
-def route_seq(S, T, sk, tk, is_back, from_boundary, obstacles):
+def seg_hits_box(p, q, b, pad=4):
+    (x1, y1), (x2, y2) = p, q
+    bx, by, bw, bh = b[0] - pad, b[1] - pad, b[2] + 2 * pad, b[3] + 2 * pad
+    if abs(y1 - y2) < 0.5:
+        lo, hi = sorted((x1, x2))
+        return by < y1 < by + bh and lo < bx + bw and hi > bx
+    lo, hi = sorted((y1, y2))
+    return bx < x1 < bx + bw and lo < by + bh and hi > by
+
+
+def collinear_overlap(s1, s2, tol=3, min_len=6):
+    (a1, a2), (b1, b2) = s1, s2
+    if abs(a1[1] - a2[1]) < 0.5 and abs(b1[1] - b2[1]) < 0.5 and abs(a1[1] - b1[1]) < tol:
+        lo = max(min(a1[0], a2[0]), min(b1[0], b2[0]))
+        hi = min(max(a1[0], a2[0]), max(b1[0], b2[0]))
+        return hi - lo > min_len
+    if abs(a1[0] - a2[0]) < 0.5 and abs(b1[0] - b2[0]) < 0.5 and abs(a1[0] - b1[0]) < tol:
+        lo = max(min(a1[1], a2[1]), min(b1[1], b2[1]))
+        hi = min(max(a1[1], a2[1]), max(b1[1], b2[1]))
+        return hi - lo > min_len
+    return False
+
+
+def simplify(pts):
+    out = []
+    for pt in pts:
+        if out and abs(out[-1][0] - pt[0]) < 0.5 and abs(out[-1][1] - pt[1]) < 0.5:
+            continue
+        if len(out) >= 2:
+            (ax, ay), (bx, by) = out[-2], out[-1]
+            if ((abs(ax - bx) < 0.5 and abs(bx - pt[0]) < 0.5)
+                    or (abs(ay - by) < 0.5 and abs(by - pt[1]) < 0.5)):
+                out[-1] = pt
+                continue
+        out.append(pt)
+    return out
+
+
+class Router:
+    """Entre rutas ortogonales candidatas elige la que no atraviesa nodos ni se monta
+    sobre líneas ya trazadas; a igualdad, la más corta y con menos quiebres."""
+
+    def __init__(self, boxes, chans):
+        self.boxes, self.chans, self.segs, self.issues = boxes, chans, [], 0
+
+    def hits(self, p, q, skip):
+        return sum(seg_hits_box(p, q, b) for i, b in self.boxes.items() if i not in skip)
+
+    def cost(self, pts, skip):
+        c = 15 * (len(pts) - 2)
+        for p, q in zip(pts, pts[1:]):
+            c += 1000 * self.hits(p, q, skip)
+            c += 250 * sum(collinear_overlap((p, q), s) for s in self.segs)
+            c += (abs(p[0] - q[0]) + abs(p[1] - q[1])) / 20
+        return c
+
+    def pick(self, cands, skip):
+        cands = [simplify(c) for c in cands if c]
+        best = min(cands, key=lambda c: self.cost(c, skip))
+        if any(self.hits(p, q, skip) for p, q in zip(best, best[1:])):
+            self.issues += 1
+        self.segs += list(zip(best, best[1:]))
+        return best
+
+
+def seq_candidates(S, T, sk, tk, is_back, from_boundary, chans):
     sx, sy, sw, sh = S
     tx, ty, tw, th = T
     scx, scy, tcx, tcy = sx + sw / 2, sy + sh / 2, tx + tw / 2, ty + th / 2
+    sr, tl = sx + sw, tx
+    same_row = abs(scy - tcy) < 1
+    C = []
     if from_boundary:
         bot = sy + sh
-        if tx > scx:
-            if tcy >= bot:
-                return [(scx, bot), (scx, tcy), (tx, tcy)]
-            y2 = bot + 20
-            return [(scx, bot), (scx, y2), (tx - 20, y2), (tx - 20, tcy), (tx, tcy)]
-        yb = max(bot, ty + th) + 20
-        return [(scx, bot), (scx, yb), (tcx, yb), (tcx, ty + th)]
-    if not is_back and tx > sx + sw / 2:
-        if abs(scy - tcy) < 1:
-            blockers = [b for b in obstacles if b != S and b != T and b[0] < tx and
-                        b[0] + b[2] > sx + sw and b[1] < scy < b[1] + b[3]]
-            if not blockers:
-                return [(sx + sw, scy), (tx, tcy)]
-            # rodear por debajo los nodos que hay en medio
-            dy = max(b[1] + b[3] for b in blockers) + 18
-            pts = ([(scx, sy + sh), (scx, dy)] if sk == "gateway"
-                   else [(sx + sw, scy), (sx + sw + 15, scy), (sx + sw + 15, dy)])
-            pts += ([(tcx, dy), (tcx, ty + th)] if tk == "gateway"
-                    else [(tx - 15, dy), (tx - 15, tcy), (tx, tcy)])
-            return pts
-        if sk == "gateway":
-            ey = sy if tcy < scy else sy + sh
-            return [(scx, ey), (scx, tcy), (tx, tcy)]
-        if tk == "gateway":
-            ey = ty if scy < tcy else ty + th
-            return [(sx + sw, scy), (tcx, scy), (tcx, ey)]
-        mx = tx - 25
-        return [(sx + sw, scy), (mx, scy), (mx, tcy), (tx, tcy)]
-    # retorno: rodear por encima
-    top = min(sy, ty) - 20
-    return [(scx, sy), (scx, top), (tcx, top), (tcx, ty)]
+        if tl > scx:
+            if tcy > bot:
+                C.append([(scx, bot), (scx, tcy), (tl, tcy)])
+            for c in (c for c in chans if scx < c < tl):
+                for yy in (bot + 16, bot + 28):
+                    C.append([(scx, bot), (scx, yy), (c, yy), (c, tcy), (tl, tcy)])
+        for off in (20, 32):
+            yb = max(bot, ty + th) + off
+            C.append([(scx, bot), (scx, yb), (tcx, yb), (tcx, ty + th)])
+        return C
+    if not is_back and tl > scx:
+        between = [c for c in chans if sr + 4 < c < tl - 4]
+        down = tcy > scy
+        if same_row:
+            C.append([(sr, scy), (tl, tcy)])
+        else:
+            if sk == "gateway":
+                ey = sy + sh if down else sy
+                C.append([(scx, ey), (scx, tcy), (tl, tcy)])
+                for c in between:
+                    gy = ey + (16 if down else -16)
+                    C.append([(scx, ey), (scx, gy), (c, gy), (c, tcy), (tl, tcy)])
+            if tk == "gateway":
+                ey = ty if down else ty + th
+                C.append([(sr, scy), (tcx, scy), (tcx, ey)])
+                for c in between:
+                    gy = ey + (-16 if down else 16)
+                    C.append([(sr, scy), (c, scy), (c, gy), (tcx, gy), (tcx, ey)])
+        for c in between:
+            C.append([(sr, scy), (c, scy), (c, tcy), (tl, tcy)])
+        # salir/entrar por abajo o arriba de una compuerta (p. ej. un bypass que salta una actividad)
+        for yy in (max(sy + sh, ty + th) + 18, min(sy, ty) - 18):
+            s_pt = (scx, sy + sh if yy > scy else sy) if sk == "gateway" else None
+            t_pt = (tcx, ty + th if yy > tcy else ty) if tk == "gateway" else None
+            if s_pt or t_pt:
+                pts = [s_pt, (scx, yy)] if s_pt else [(sr, scy), (sr + 15, scy), (sr + 15, yy)]
+                pts += [(tcx, yy), t_pt] if t_pt else [(tl - 15, yy), (tl - 15, tcy), (tl, tcy)]
+                C.append(pts)
+        # rodeos por el hueco entre filas cuando la fila está ocupada
+        c1 = between[0] if between else sr + 15
+        c2 = between[-1] if between else tl - 15
+        for yy in (max(sy + sh, ty + th) + 18, min(sy, ty) - 18):
+            C.append([(sr, scy), (c1, scy), (c1, yy), (c2, yy), (c2, tcy), (tl, tcy)])
+        return C
+    # retorno (ciclo): por encima o por debajo
+    for off in (20, 32):
+        top = min(sy, ty) - off
+        C.append([(scx, sy), (scx, top), (tcx, top), (tcx, ty)])
+        bot = max(sy + sh, ty + th) + off
+        C.append([(scx, sy + sh), (scx, bot), (tcx, bot), (tcx, ty + th)])
+    return C
 
 
-def route_msg(f, geo, pool_of):
+def msg_candidates(f, geo, pool_of, chans):
     def box(ref, is_pool):
         return geo["pools"][ref] if is_pool else geo["nodes"][ref]
 
@@ -663,27 +765,59 @@ def route_msg(f, geo, pool_of):
     scx = sx + sw / 2 if not f["sourceIsPool"] else tx + tw / 2
     tcx = tx + tw / 2 if not f["targetIsPool"] else scx
     tpool = geo["pools"][f["target"] if f["targetIsPool"] else pool_of[f["target"]]]
-    if ty > sy:
+    going_down = ty > sy
+    if going_down:
         y1, y2 = sy + sh, ty
         my = tpool[1] - POOL_GAP / 2
     else:
         y1, y2 = sy, ty + th
         my = tpool[1] + tpool[3] + POOL_GAP / 2
-    if abs(scx - tcx) < 1:
-        return [(scx, y1), (tcx, y2)]
-    return [(scx, y1), (scx, my), (tcx, my), (tcx, y2)]
+    step = 16 if going_down else -16
+    C = [[(scx, y1), (tcx, y2)] if abs(scx - tcx) < 1 else
+         [(scx, y1), (scx, my), (tcx, my), (tcx, y2)]]
+    ref_x = tcx if f["sourceIsPool"] else scx
+    for c in sorted(chans, key=lambda c: abs(c - ref_x))[:3]:
+        if f["targetIsPool"]:      # sale un tramo corto del nodo y sigue por el pasillo
+            C.append([(scx, y1), (scx, y1 + step), (c, y1 + step), (c, y2)])
+        elif f["sourceIsPool"]:    # baja por el pasillo y entra al nodo con un tramo corto
+            C.append([(c, y1), (c, y2 - step), (tcx, y2 - step), (tcx, y2)])
+        else:
+            C.append([(scx, y1), (scx, y1 + step), (c, y1 + step), (c, my), (tcx, my), (tcx, y2)])
+    return C
 
 
 def text_lines(text, width=16):
     return max(1, len(wrap(text, width)))
 
 
+def rect_overlap(a, b):
+    return a[0] < b[0] + b[2] and b[0] < a[0] + a[2] and a[1] < b[1] + b[3] and b[1] < a[1] + a[3]
+
+
+def seg_crosses_rect(p, q, r):
+    if abs(p[0] - q[0]) < 0.5 or abs(p[1] - q[1]) < 0.5:
+        return seg_hits_box(p, q, r, pad=0)
+    return any(r[0] < p[0] + (q[0] - p[0]) * k / 12 < r[0] + r[2]
+               and r[1] < p[1] + (q[1] - p[1]) * k / 12 < r[1] + r[3] for k in range(13))
+
+
 def place_labels(spec, geo):
-    """Cajas de etiqueta para eventos, compuertas y flujos (Bizagi las respeta vía BPMNLabel)."""
-    ends = set()
-    for pts in geo["edges"].values():
-        for x, y in (pts[0], pts[-1]):
-            ends.add((round(x), round(y)))
+    """Cajas de etiqueta (Bizagi las respeta vía BPMNLabel). Para cada etiqueta se prueban
+    varias posiciones y se usa la primera que no pisa nodos, líneas ni otras etiquetas."""
+    geo["anchor"] = {}
+    segs = [s for pts in geo["edges"].values() for s in zip(pts, pts[1:])]
+    taken = []
+
+    def free(box, own):
+        return (not any(rect_overlap(box, b) for i, b in geo["nodes"].items() if i not in own)
+                and not any(rect_overlap(box, t) for t in taken)
+                and not any(seg_crosses_rect(p, q, box) for p, q in segs))
+
+    def put(key, cands, own):
+        box, anchor = next(((b, a) for b, a in cands if free(b, own)), cands[0])
+        geo["labels"][key], geo["anchor"][key] = box, anchor
+        taken.append(box)
+
     for n in spec["nodes"]:
         k = kind(n["type"])
         if not n["name"] or n["id"] not in geo["nodes"] or k not in ("event", "gateway"):
@@ -691,31 +825,54 @@ def place_labels(spec, geo):
         x, y, w, h = geo["nodes"][n["id"]]
         cx = x + w / 2
         lh = 13 * text_lines(n["name"]) + 2
+        below = ((cx - 50, y + h + 4, 100, lh), "middle")
+        above = ((cx - 50, y - lh - 4, 100, lh), "middle")
+        right = ((x + w + 4, y + h / 2 - lh / 2, 100, lh), "start")
+        left = ((x - 104, y + h / 2 - lh / 2, 100, lh), "end")
         if n["attachedTo"]:
-            slot = geo["slot"].get(n["id"], 0)
-            if slot == 0:    # a la derecha
-                geo["labels"][n["id"]] = (x + w + 2, y + h - 6, 96, lh)
-            elif slot == 1:  # a la izquierda
-                geo["labels"][n["id"]] = (x - 98, y + h - 6, 96, lh)
-            else:
-                geo["labels"][n["id"]] = (cx - 50, y + h + 4, 100, lh)
+            side_r = ((x + w + 2, y + h - 6, 96, lh), "start")
+            side_l = ((x - 98, y + h - 6, 96, lh), "end")
+            first = [side_r, side_l] if geo["slot"].get(n["id"], 0) == 0 else [side_l, side_r]
+            cands = first + [below]
         elif k == "gateway":
-            geo["labels"][n["id"]] = (x - 98, y - lh - 2, 100, lh)
-        elif (round(cx), round(y + h)) in ends and (round(cx), round(y)) not in ends:
-            geo["labels"][n["id"]] = (cx - 50, y - lh - 4, 100, lh)
+            cands = [((x - 98, y - lh - 2, 100, lh), "end"), ((x + w - 2, y - lh - 2, 100, lh), "start"),
+                     ((x - 98, y + h + 2, 100, lh), "end"), ((x + w - 2, y + h + 2, 100, lh), "start")]
         else:
-            geo["labels"][n["id"]] = (cx - 50, y + h + 4, 100, lh)
+            cands = [below, above, right, left]
+        put(n["id"], cands, {n["id"]})
+
+    msg_ids = {f["id"] for f in spec["messageFlows"]}
     for f in spec["flows"] + spec["messageFlows"]:
         pts = geo["edges"].get(f["id"])
         if not f["name"] or not pts:
             continue
-        (x1, y1), (x2, y2) = (pts[1], pts[2]) if len(pts) > 2 else (pts[0], pts[1])
-        mx, my = (x1 + x2) / 2, (y1 + y2) / 2
-        w, h = 7 * len(f["name"]) + 10, 16
-        if abs(y1 - y2) < 1:
-            geo["labels"][f["id"]] = (mx - w / 2, my - h - 2, w, h)
+        w, h = 6 * len(f["name"]) + 8, 15
+        segs_f = list(zip(pts, pts[1:]))
+        if f["id"] in msg_ids:
+            # mensajes: en el tramo más largo, a media altura
+            order = sorted(segs_f, key=lambda s: -(abs(s[0][0] - s[1][0]) + abs(s[0][1] - s[1][1])))
+            fracs = (0.5, 0.3, 0.7)
         else:
-            geo["labels"][f["id"]] = (mx + 4, my - h / 2, w, h)
+            # secuencia: junto al origen (la compuerta), pasada la marca de flujo por defecto
+            order = [s for s in segs_f[:2] if abs(s[0][0] - s[1][0]) + abs(s[0][1] - s[1][1]) >= 24] \
+                or segs_f[:1]
+            fracs = (None,)
+        cands = []
+        for (x1, y1), (x2, y2) in order:
+            for fr in fracs:
+                if abs(y1 - y2) < 1:
+                    if fr is None:
+                        lx = x1 + 16 if x2 > x1 else x1 - 16 - w
+                    else:
+                        lx = x1 + (x2 - x1) * fr - w / 2
+                    cands += [((lx, y1 - h - 2, w, h), "middle"), ((lx, y1 + 3, w, h), "middle")]
+                else:
+                    if fr is None:
+                        ly = y1 + 6 if y2 > y1 else y1 - 6 - h
+                    else:
+                        ly = y1 + (y2 - y1) * fr - h / 2
+                    cands += [((x1 + 4, ly, w, h), "start"), ((x1 - 4 - w, ly, w, h), "end")]
+        put(f["id"], cands, {f["source"], f["target"]})
 
 
 # ---------------------------------------------------------------- BPMN XML
@@ -1150,13 +1307,14 @@ def render_svg(spec, geo):
             out.append(f'<line x1="{mx - 5}" y1="{my - 5}" x2="{mx + 5}" y2="{my + 5}" stroke="#374151"/>')
         if f["id"] in geo["labels"]:
             lx, ly, lw, lh = geo["labels"][f["id"]]
-            anchor, tx = ("middle", lx + lw / 2) if abs(pts[1][1] - pts[0][1]) < 1 or len(pts) > 2 \
-                and abs(pts[1][1] - pts[2][1]) < 1 else ("start", lx)
+            anchor = geo["anchor"].get(f["id"], "middle")
+            tx = {"start": lx, "end": lx + lw}.get(anchor, lx + lw / 2)
             out.append(f'<text x="{tx:.0f}" y="{ly + lh / 2:.0f}" font-size="10" text-anchor="{anchor}" '
                        f'dominant-baseline="middle" fill="#1d4ed8" paint-order="stroke" stroke="#fff" '
                        f'stroke-width="3">{html.escape(f["name"])}</text>')
     # actividades primero, para que los eventos adjuntos queden encima
     order = sorted(geo["nodes"], key=lambda i: bool(nodes[i]["attachedTo"]))
+    hosts = {n["attachedTo"] for n in spec["nodes"] if n["attachedTo"]}
     for nid in order:
         x, y, w, h = geo["nodes"][nid]
         n = nodes[nid]
@@ -1165,20 +1323,20 @@ def render_svg(spec, geo):
         if t == "dataObject":
             out.append(f'<path d="M{x},{y} h{w - 10} l10,10 v{h - 10} h{-w} z" fill="#fff" stroke="#4b5563"/>'
                        f'<path d="M{x + w - 10},{y} v10 h10" fill="none" stroke="#4b5563"/>')
-            out.append(svg_text(cx, y + h + 12, n["name"], 18, 10))
+            out.append(svg_text(cx, y + h + 12 + (text_lines(n["name"], 18) - 1) * 6, n["name"], 18, 10))
         elif t == "dataStore":
             out.append(f'<path d="M{x},{y + 8} v{h - 16} a{w / 2},8 0 0 0 {w},0 v{-(h - 16)}" fill="#fff" '
                        f'stroke="#4b5563"/><ellipse cx="{cx}" cy="{y + 8}" rx="{w / 2}" ry="8" fill="#fff" '
                        f'stroke="#4b5563"/>')
-            out.append(svg_text(cx, y + h + 12, n["name"], 18, 10))
+            out.append(svg_text(cx, y + h + 12 + (text_lines(n["name"], 18) - 1) * 6, n["name"], 18, 10))
         elif t == "annotation":
             out.append(f'<path d="M{x + 12},{y} h-12 v{h} h12" fill="none" stroke="#6b7280" stroke-width="1.3"/>')
-            out.append(svg_text(x + 6, cy, n["text"], 20, 10, anchor="start", fill="#374151"))
+            out.append(svg_text(x + 8, cy, n["text"], 24, 10, anchor="start", fill="#374151"))
         elif k == "activity":
             sw = 3 if t == "callActivity" else 1.5
             out.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="9" fill="#eef5ff" '
                        f'stroke="#2563eb" stroke-width="{sw}"/>')
-            out.append(svg_text(cx, cy + 4, n["name"], 16, 10.5))
+            out.append(svg_text(cx, cy - 4 if nid in hosts else cy + 4, n["name"], 16, 10.5))
             if t in TASK_ICON:
                 out.append(f'<text x="{x + 6}" y="{y + 13}" font-size="11">{TASK_ICON[t]}</text>')
             if t == "subProcess":
@@ -1209,14 +1367,10 @@ def render_svg(spec, geo):
                        f'dominant-baseline="middle" fill="#854d0e">{GATEWAY_ICON[t]}</text>')
         if nid in geo["labels"]:
             lx, ly, lw, lh = geo["labels"][nid]
-            if k == "gateway":
-                out.append(svg_text(lx + lw, ly + lh / 2, n["name"], 16, 10, anchor="end"))
-            elif n["attachedTo"]:
-                slot = geo["slot"].get(nid, 0)
-                bx, anchor = {0: (lx, "start"), 1: (lx + lw, "end")}.get(slot, (lx + lw / 2, "middle"))
-                out.append(svg_text(bx, ly + lh / 2, n["name"], 16, 10, anchor=anchor, fill="#92400e"))
-            else:
-                out.append(svg_text(lx + lw / 2, ly + lh / 2, n["name"], 16, 10))
+            anchor = geo["anchor"].get(nid, "middle")
+            tx = {"start": lx, "end": lx + lw}.get(anchor, lx + lw / 2)
+            out.append(svg_text(tx, ly + lh / 2, n["name"], 16, 10, anchor=anchor,
+                                fill="#92400e" if n["attachedTo"] else "#1f2937"))
     out.append("</svg>")
     return "\n".join(out)
 
@@ -1231,82 +1385,163 @@ BOUNDARY_ES = {"timer": "tiempo", "messageCatch": "mensaje", "signalCatch": "se�
                "conditional": "condición", "errorCatch": "error"}
 
 
+DURATION_RE = re.compile(r"P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?"
+                         r"(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?")
+DURATION_ES = [("año", "años"), ("mes", "meses"), ("semana", "semanas"), ("día", "días"),
+               ("hora", "horas"), ("minuto", "minutos"), ("segundo", "segundos")]
+
+
+def humanize_duration(iso):
+    """P3D -> '3 días', PT4H -> '4 horas'; otro texto se devuelve tal cual."""
+    m = DURATION_RE.fullmatch((iso or "").strip())
+    if not m or not any(m.groups()):
+        return iso or ""
+    parts = [f"{int(v)} {DURATION_ES[i][int(v) != 1]}" for i, v in enumerate(m.groups()) if v]
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " y " + parts[-1]
+
+
 def summarize(spec, geo):
-    """Contenido documental del proceso, común a Markdown y Word."""
+    """Contenido documental del proceso, común a Markdown y Word, en el orden del flujo."""
     nodes = {n["id"]: n for n in spec["nodes"]}
     pools = {p["id"]: p for p in spec["pools"]}
-    title = lambda i: (nodes[i]["name"] or nodes[i]["orig"]) if i in nodes else pools[i]["name"]
-    who = lambda n: n["lane"] or pools[n["pool"]]["name"]
-    out_f = defaultdict(list)
+    out_f, in_f = defaultdict(list), defaultdict(list)
     for f in spec["flows"]:
         out_f[f["source"]].append(f)
-    ins, outs, notes = defaultdict(list), defaultdict(list), defaultdict(list)
-    used_in, made_by = defaultdict(list), defaultdict(list)
-    note_rows = []
-    for a in spec["associations"]:
-        s, t = nodes[a["source"]], nodes[a["target"]]
-        if s["type"] in DATA_TYPES:
-            ins[t["id"]].append(s["name"])
-            used_in[s["id"]].append(title(t["id"]))
-        elif t["type"] in DATA_TYPES:
-            outs[s["id"]].append(t["name"])
-            made_by[t["id"]].append(title(s["id"]))
-        elif "annotation" in (s["type"], t["type"]):
-            note, other = (s, t) if s["type"] == "annotation" else (t, s)
-            notes[other["id"]].append(note["text"])
-            note_rows.append((title(other["id"]), note["text"]))
+        in_f[f["target"]].append(f)
     boundary_of = defaultdict(list)
     for n in spec["nodes"]:
         if n["attachedTo"]:
             boundary_of[n["attachedTo"]].append(n)
-    order = sorted((i for i in geo["nodes"] if kind(nodes[i]["type"]) != "artifact"
-                    and not nodes[i]["attachedTo"]),
-                   key=lambda i: (geo["nodes"][i][0], geo["nodes"][i][1]))
+    is_gw = lambda i: i in nodes and kind(nodes[i]["type"]) == "gateway"
+    is_join = lambda i: is_gw(i) and len(out_f[i]) <= 1 and len(in_f[i]) > 1
+
+    def title(i):
+        if i in pools:
+            return pools[i]["name"]
+        n = nodes[i]
+        if n["name"]:
+            return n["name"]
+        if is_gw(i):
+            if len(out_f[i]) > 1:
+                return {"parallel": "División en paralelo", "inclusive": "Decisión múltiple",
+                        "eventBased": "Espera del primer evento"}.get(n["type"], "Decisión")
+            return "Unión de caminos"
+        return n["orig"]
+
+    def resolve(i):
+        """Las uniones no se narran: se sigue hasta el elemento siguiente."""
+        for _ in range(len(nodes)):
+            if not is_join(i) or not out_f[i]:
+                return i
+            i = out_f[i][0]["target"]
+        return i
+
+    who = lambda n: n["lane"] or pools[n["pool"]]["name"]
+    plazo = lambda n: n.get("deadline") or humanize_duration(n["timer"])
+    when_of = lambda n: f" ({plazo(n)})" if plazo(n) and plazo(n).lower() not in (n["name"] or "").lower() else ""
+
+    # orden del flujo: recorrido en profundidad desde los inicios (las ramas por defecto primero)
+    flow_nodes = [n["id"] for n in spec["nodes"]
+                  if kind(n["type"]) != "artifact" and not n["attachedTo"]]
+    order, seen = [], set()
+    starts = [i for i in flow_nodes if nodes[i]["type"].startswith("start")]
+    for s in starts + flow_nodes:
+        stack = [s]
+        while stack:
+            v = stack.pop()
+            if v in seen:
+                continue
+            seen.add(v)
+            if v in flow_nodes:
+                order.append(v)
+            nxt = [f["target"] for f in sorted(out_f[v], key=lambda f: f["default"])]
+            for b in boundary_of[v]:
+                nxt += [f["target"] for f in out_f[b["id"]]]
+            stack.extend(reversed(nxt))
+
+    # el orden de lectura es la etapa (columna del diagrama); dentro de la etapa, el recorrido
+    dfs_pos = {v: k for k, v in enumerate(order)}
+    stage = lambda i: geo["nodes"][i][0] + geo["nodes"][i][2] / 2 if i in geo["nodes"] else 0
+    order = sorted(order, key=lambda i: (round(stage(i) / COL_W), dfs_pos[i]))
+    ins, outs, systems = defaultdict(list), defaultdict(list), defaultdict(list)
+    used_in, made_by, note_rows = defaultdict(list), defaultdict(list), []
+    for a in spec["associations"]:
+        s, t = nodes[a["source"]], nodes[a["target"]]
+        if s["type"] in DATA_TYPES:
+            (systems if s["type"] == "dataStore" else ins)[t["id"]].append(s["name"])
+            used_in[s["id"]].append(title(t["id"]))
+        elif t["type"] in DATA_TYPES:
+            (systems if t["type"] == "dataStore" else outs)[s["id"]].append(t["name"])
+            made_by[t["id"]].append(title(s["id"]))
+        elif "annotation" in (s["type"], t["type"]):
+            note, other = (s, t) if s["type"] == "annotation" else (t, s)
+            note_rows.append((title(other["id"]), note["text"]))
+
     S = {"name": spec["name"], "doc": spec["doc"], "meta": spec.get("meta", {}),
-         "participants": [], "activities": [], "sequence": [], "decisions": [],
-         "exceptions": [], "data": [], "messages": [], "notes": note_rows}
-    for p in spec["pools"]:
-        roles = ", ".join(p["lanes"]) if p["lanes"] else ("Participante externo" if p["blackbox"] else "—")
-        S["participants"].append((p["name"], roles, p["doc"]))
+         "assumptions": spec.get("assumptions", []), "questions": spec.get("questions", []),
+         "roles": [], "activities": [], "sequence": [], "decisions": [], "exceptions": [],
+         "data": [], "messages": [], "notes": note_rows}
+    acts_of = defaultdict(list)
     for i in order:
         n = nodes[i]
         if kind(n["type"]) == "activity":
+            acts_of[(n["pool"], n["lane"])].append(n["name"])
             S["activities"].append({
                 "name": n["name"], "type": TYPE_ES.get(n["type"], n["type"]), "who": who(n),
-                "ins": ", ".join(ins[i]), "outs": ", ".join(outs[i]),
-                "desc": " ".join(filter(None, [n["doc"]] + notes[i]))})
-    # secuencia como segmentos (texto, estilo) para poder pintarla en Markdown o Word
+                "ins": ", ".join(dict.fromkeys(ins[i])), "outs": ", ".join(dict.fromkeys(outs[i])),
+                "systems": ", ".join(dict.fromkeys(systems[i])), "desc": n["doc"]})
+    for p in spec["pools"]:
+        if p["blackbox"]:
+            S["roles"].append((p["name"], "Externo", "—", p["doc"]))
+            continue
+        for lane in (p["lanes"] or [None]):
+            S["roles"].append((lane or p["name"], p["name"],
+                               "; ".join(acts_of[(p["id"], lane)]) or "—",
+                               p.get("laneDocs", {}).get(lane, "") if lane else p["doc"]))
+
     seq = S["sequence"]
     for i in order:
         n, nxt, name = nodes[i], out_f[i], title(i)
-        if kind(n["type"]) == "gateway" and len(nxt) > 1:
+        if is_join(i):
+            continue
+        targets = [resolve(f["target"]) for f in nxt]
+        if is_gw(i) and len(nxt) > 1 and n["type"] == "parallel":
+            segs = [(name, "b"), (": en paralelo ", "")]
+            for k, t in enumerate(targets):
+                segs += ([(" y ", "")] if k else []) + [(title(t), "i")]
+            seq.append((0, segs))
+        elif is_gw(i) and len(nxt) > 1:
             seq.append((0, [(name, "b"), (" (decisión)", "")]))
-            for f in nxt:
-                cond = f["name"] or f["condition"] or ("por defecto" if f["default"] else "")
-                seq.append((1, [(f"{cond or '→'}: ir a ", ""), (title(f["target"]), "i")]))
-                S["decisions"].append((name, who(n), cond or "—", title(f["target"])))
+            for f, t in zip(nxt, targets):
+                cond = f["name"] or f["condition"] or ""
+                shown = cond + (" (por defecto)" if f["default"] else "") if cond else \
+                    ("Por defecto" if f["default"] else "Otro caso")
+                seq.append((1, [(f"{shown}: ir a ", ""), (title(t), "i")]))
+                S["decisions"].append((name, who(n), shown, title(t)))
         elif n["type"].startswith("end"):
             seq.append((0, [("Fin: ", ""), (name, "b")]))
         elif nxt:
-            segs = [(name, "b"), (" → ", "")]
-            for k, f in enumerate(nxt):
-                segs += ([(", ", "")] if k else []) + [(title(f["target"]), "i")]
+            segs = [("Inicio: ", "")] if n["type"].startswith("start") else []
+            segs += [(name, "b"), (" → ", "")]
+            for k, t in enumerate(targets):
+                segs += ([(", ", "")] if k else []) + [(title(t), "i")]
             seq.append((0, segs))
         for b in boundary_of[i]:
-            tgt = ", ".join(title(f["target"]) for f in out_f[b["id"]]) or "—"
+            tgt = ", ".join(title(resolve(f["target"])) for f in out_f[b["id"]]) or "—"
             kind_es = BOUNDARY_ES.get(b["type"], b["type"])
             mode = "interrumpe la actividad" if b["interrupting"] else "sin interrumpir la actividad"
-            when = f" ({b['timer']})" if b["timer"] else ""
+            when = when_of(b)
             seq.append((1, [(f"Excepción por {kind_es}: ", ""), (b["name"] or b["orig"], "b"),
                             (f"{when}, {mode} → ", ""), (tgt, "i")]))
             S["exceptions"].append((name, b["name"] or b["orig"], kind_es.capitalize(),
-                                    b["timer"] or "—", "Sí" if b["interrupting"] else "No", tgt))
+                                    plazo(b) or "—", "Sí" if b["interrupting"] else "No", tgt))
     for f in spec["messageFlows"]:
         S["messages"].append((title(f["source"]), f["name"] or "—", title(f["target"])))
     for n in spec["nodes"]:
         if n["type"] in DATA_TYPES:
-            S["data"].append((n["name"], "Documento" if n["type"] == "dataObject" else "Almacén / sistema",
-                              ", ".join(used_in[n["id"]]) or "—", ", ".join(made_by[n["id"]]) or "—"))
+            S["data"].append((n["name"], "Documento" if n["type"] == "dataObject" else "Sistema / registro",
+                              ", ".join(dict.fromkeys(used_in[n["id"]])) or "—",
+                              ", ".join(dict.fromkeys(made_by[n["id"]])) or "—"))
     return S
 
 
@@ -1317,19 +1552,25 @@ def render_doc(spec, geo):
     md = [f"# {S['name']}", ""]
     if S["doc"]:
         md += [S["doc"], ""]
-    md += ["## Participantes", ""]
-    md += [f"- **{name}**: {roles}" for name, roles, _ in S["participants"]]
+    md += ["## Roles", "", "| Rol | Participante | Actividades a cargo | Descripción |", "|---|---|---|---|"]
+    md += [f"| {cell(r)} | {cell(p)} | {cell(a)} | {cell(d)} |" for r, p, a, d in S["roles"]]
     md += ["", "## Actividades", "",
-           "| # | Actividad | Tipo | Responsable | Entradas | Salidas | Descripción |",
-           "|---|---|---|---|---|---|---|"]
+           "| # | Actividad | Tipo | Responsable | Entradas | Salidas | Sistemas | Descripción |",
+           "|---|---|---|---|---|---|---|---|"]
     for k, a in enumerate(S["activities"], 1):
         md.append(f"| {k} | {cell(a['name'])} | {a['type']} | {cell(a['who'])} | {cell(a['ins'])} | "
-                  f"{cell(a['outs'])} | {cell(a['desc'])} |")
+                  f"{cell(a['outs'])} | {cell(a['systems'])} | {cell(a['desc'])} |")
     md += ["", "## Secuencia", ""]
     for level, segs in S["sequence"]:
         md.append("  " * level + "- " + "".join(f"{mark[st]}{t}{mark[st]}" for t, st in segs))
     for src, name, dst in S["messages"]:
         md.append(f"- Mensaje{(' «' + name + '»') if name != '—' else ''}: {src} ⇢ {dst}")
+    if S["notes"]:
+        md += ["", "## Notas", ""] + [f"- **{e}**: {t}" for e, t in S["notes"]]
+    if S["assumptions"] or S["questions"]:
+        md += ["", "## Supuestos y puntos por validar", ""]
+        md += [f"- Supuesto: {a}" for a in S["assumptions"]]
+        md += [f"- Por validar: {q}" for q in S["questions"]]
     return "\n".join(md) + "\n"
 
 
@@ -1343,6 +1584,8 @@ DOCX_NS = ('xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/mai
 ACCENT = "C2410C"         # naranja Bizagi, legible sobre blanco
 HEAD_FILL = "E8601C"
 PORTRAIT, LANDSCAPE = (11906, 16838), (16838, 11906)   # A4 en twips
+A3_LANDSCAPE = (23811, 16838)
+MIN_TEXT_PX_PER_CM = 47   # escala mínima de impresión: el texto de 10 px queda en ~6 pt
 MARGIN = 1134                                           # 2 cm
 
 
@@ -1410,17 +1653,17 @@ def w_section(size):
             f'w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>')
 
 
-def w_image(cx, cy, png_rid, svg_rid, alt=""):
+def w_image(cx, cy, png_rid, svg_rid, alt="", pid=1):
     svg_ext = ""
     if svg_rid:
         svg_ext = ('<a:extLst><a:ext uri="{96DAC541-7B7A-43D3-8B79-37D633B846F1}">'
                    '<asvg:svgBlip xmlns:asvg="http://schemas.microsoft.com/office/drawing/2016/SVG/main" '
                    f'r:embed="{svg_rid}"/></a:ext></a:extLst>')
     return (f'<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
-            f'<wp:extent cx="{cx}" cy="{cy}"/><wp:docPr id="1" name="Diagrama del proceso" descr="{x(alt)}"/>'
+            f'<wp:extent cx="{cx}" cy="{cy}"/><wp:docPr id="{pid}" name="Diagrama {pid}" descr="{x(alt)}"/>'
             f'<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>'
             f'<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
-            f'<pic:pic><pic:nvPicPr><pic:cNvPr id="1" name="diagrama.png"/><pic:cNvPicPr/></pic:nvPicPr>'
+            f'<pic:pic><pic:nvPicPr><pic:cNvPr id="{pid}" name="diagrama{pid}.png"/><pic:cNvPicPr/></pic:nvPicPr>'
             f'<pic:blipFill><a:blip r:embed="{png_rid}">{svg_ext}</a:blip>'
             f'<a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
             f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
@@ -1462,6 +1705,15 @@ def svg_to_png(svg_text, size):
         return png_p.read_bytes() if png_p.exists() else None
 
 
+def crop_svg(svg, x0, w, h, y0=0):
+    """Misma imagen, mostrando solo el rectángulo (x0, y0, w, h)."""
+    head_end = svg.index(">")
+    head = re.sub(r'width="[^"]*"', f'width="{w:.0f}"', svg[:head_end], count=1)
+    head = re.sub(r'height="[^"]*"', f'height="{h:.0f}"', head, count=1)
+    head = re.sub(r'viewBox="[^"]*"', f'viewBox="{x0:.0f} {y0:.0f} {w:.0f} {h:.0f}"', head, count=1)
+    return head + svg[head_end:]
+
+
 def blank_png():
     import struct
     import zlib
@@ -1482,19 +1734,40 @@ def render_docx(spec, geo, out_path, png=True):
     import zipfile
     S = summarize(spec, geo)
     svg = render_svg(spec, geo)
-    png_bytes = (svg_to_png(svg, geo["size"]) if png else None)
-    has_png = png_bytes is not None
-    png_bytes = png_bytes or blank_png()
+    W, H = geo["size"]
+    # si en A4 el texto quedaría ilegible al imprimir: hojas A3 con vista general + detalle en mosaico
+    a4_w_cm = (LANDSCAPE[0] - 2 * MARGIN) / 567
+    a4_h_cm = (LANDSCAPE[1] - 2 * MARGIN - 1400) / 567
+    big = W / a4_w_cm > MIN_TEXT_PX_PER_CM * 1.6 or H / a4_h_cm > MIN_TEXT_PX_PER_CM * 1.6
+    diag_page = A3_LANDSCAPE if big else LANDSCAPE
+    views = [(svg, W, H, "vista general" if big else "")]
+    if big:
+        tile_w = (A3_LANDSCAPE[0] - 2 * MARGIN) / 567 * MIN_TEXT_PX_PER_CM
+        tile_h = (A3_LANDSCAPE[1] - 2 * MARGIN - 1400) / 567 * MIN_TEXT_PX_PER_CM
+        cols, rows = math.ceil(W / tile_w), math.ceil(H / tile_h)
+        n = cols * rows
+        for r_ in range(rows):
+            for c_ in range(cols):
+                x0, x1 = max(0, c_ * W / cols - 30), min(W, (c_ + 1) * W / cols + 30)
+                y0, y1 = max(0, r_ * H / rows - 30), min(H, (r_ + 1) * H / rows + 30)
+                views.append((crop_svg(svg, x0, x1 - x0, y1 - y0, y0), x1 - x0, y1 - y0,
+                              f"detalle {r_ * cols + c_ + 1} de {n}"))
+    images = []
+    for vs, vw, vh, label in views:
+        img = svg_to_png(vs, (vw, vh)) if png else None
+        images.append((vs, img, vw, vh, label))
+    has_png = all(img is not None for _, img, _, _, _ in images)
     today = datetime.date.today().isoformat()
 
     pw = PORTRAIT[0] - 2 * MARGIN
     lw = LANDSCAPE[0] - 2 * MARGIN
     body = [w_para(w_run(S["name"]), "Title"),
             w_para(w_run("Documentación del proceso"), "Subtitle")]
-    meta = [(META_ES.get(k, k.capitalize()), v) for k, v in S["meta"].items()]
-    if not any(k == "fecha" for k in S["meta"]):
-        meta.append(("Fecha", today))
-    meta.append(("Generado con", f"bizagi-cli {VERSION} (BPMN 2.0 para Bizagi Modeler)"))
+    standard = ["codigo", "version", "responsable", "elaborado", "revisado", "aprobado", "fecha"]
+    given = dict(S["meta"])
+    given.setdefault("fecha", today)
+    meta = [(META_ES[k], given.pop(k, "") or "Por completar") for k in standard]
+    meta += [(META_ES.get(k, k.capitalize()), v) for k, v in given.items()]
     body.append(w_table(["Dato", "Valor"], meta, scale_widths([1, 2.4], pw)))
 
     sec = 0
@@ -1506,28 +1779,43 @@ def render_docx(spec, geo, out_path, png=True):
 
     body.append(h1("Objetivo y alcance"))
     body.append(w_para(w_run(S["doc"] or "Sin descripción registrada.")))
-    body.append(h1("Participantes y roles"))
-    body.append(w_table(["Participante", "Roles (carriles)", "Descripción"],
-                        S["participants"], scale_widths([1.2, 2, 2], pw)))
+    body.append(h1("Roles y responsabilidades"))
+    if sum(1 for p in spec["pools"] if not p["blackbox"]) > 1:
+        body.append(w_table(["Rol", "Participante", "Actividades a cargo", "Descripción"],
+                            S["roles"], scale_widths([1.3, 1.1, 2.6, 1.6], pw)))
+    else:
+        body.append(w_table(["Rol", "Actividades a cargo", "Descripción"],
+                            [(r, a, d) if p != "Externo" else (r, "Participante externo", d)
+                             for r, p, a, d in S["roles"]], scale_widths([1.3, 2.8, 1.8], pw)))
     # fin de la sección vertical; lo que sigue va en horizontal
     body.append(f"<w:p><w:pPr>{w_section(PORTRAIT)}</w:pPr></w:p>")
 
     # diagrama en horizontal, ajustado al área útil de la página
     body.append(h1("Diagrama del proceso"))
-    W, H = geo["size"]
-    max_cx, max_cy = lw * 635, (LANDSCAPE[1] - 2 * MARGIN - 1400) * 635
-    s = min(max_cx / (W * 9525), max_cy / (H * 9525), 1.0)
-    cx, cy = int(W * 9525 * s), int(H * 9525 * s)
-    body.append(w_para(w_image(cx, cy, "rIdPng", "rIdSvg",
-                                       alt=f"Diagrama BPMN del proceso {S['name']}"), align="center"))
-    body.append(w_para(w_run(f"Figura 1. {S['name']} (BPMN 2.0). El archivo .bpmn se importa en "
-                             "Bizagi Modeler desde Exportar/Importar → Importar → BPMN."), "Caption"))
+    max_cx = (diag_page[0] - 2 * MARGIN) * 635
+    max_cy = (diag_page[1] - 2 * MARGIN - 1400) * 635
+    for k, (_, _, vw, vh, label) in enumerate(images, 1):
+        if k > 1:
+            body.append('<w:p><w:r><w:br w:type="page"/></w:r></w:p>')
+        s = min(max_cx / (vw * 9525), max_cy / (vh * 9525), 1.0)
+        cx, cy = int(vw * 9525 * s), int(vh * 9525 * s)
+        body.append(w_para(w_image(cx, cy, f"rIdPng{k}", f"rIdSvg{k}", pid=k,
+                                   alt=f"Diagrama BPMN del proceso {S['name']} {label}".strip()),
+                           align="center"))
+        cap = f"Figura 1{'.' + str(k - 1) if k > 1 else ''}. {S['name']}" + (f" ({label})" if label else "")
+        if k == 1:
+            cap += (". El archivo .bpmn se importa en Bizagi Modeler desde Exportar/Importar → "
+                    "Importar → BPMN.")
+        body.append(w_para(w_run(cap), "Caption"))
+    # el diagrama cierra su propia sección (A4 o A3 horizontal)
+    body.append(f"<w:p><w:pPr>{w_section(diag_page)}</w:pPr></w:p>")
 
     body.append(h1("Descripción de actividades"))
-    body.append(w_table(["N.º", "Actividad", "Tipo", "Responsable", "Entradas", "Salidas", "Descripción"],
-                        [(k, a["name"], a["type"], a["who"], a["ins"], a["outs"], a["desc"])
+    body.append(w_table(["N.º", "Actividad", "Tipo", "Responsable", "Entradas", "Salidas", "Sistemas",
+                         "Descripción"],
+                        [(k, a["name"], a["type"], a["who"], a["ins"], a["outs"], a["systems"], a["desc"])
                          for k, a in enumerate(S["activities"], 1)],
-                        scale_widths([0.45, 2, 1.3, 1.4, 1.5, 1.5, 3.6], lw)))
+                        scale_widths([0.45, 1.9, 1.2, 1.3, 1.4, 1.4, 1.3, 3.2], lw)))
     body.append(h1("Flujo del proceso"))
     for level, segs in S["sequence"]:
         body.append(w_para(w_run("• " if level == 0 else "– ")
@@ -1542,7 +1830,7 @@ def render_docx(spec, geo, out_path, png=True):
                             S["exceptions"], scale_widths([1.8, 2, 1, 0.9, 0.9, 2], lw)))
     if S["data"]:
         body.append(h1("Documentos y sistemas"))
-        body.append(w_table(["Elemento", "Tipo", "Se usa en", "Lo produce"], S["data"],
+        body.append(w_table(["Elemento", "Tipo", "Lo usan (entrada)", "Lo generan o actualizan"], S["data"],
                             scale_widths([2, 1.3, 2.5, 2.5], lw)))
     if S["messages"]:
         body.append(h1("Interacciones con externos"))
@@ -1551,6 +1839,10 @@ def render_docx(spec, geo, out_path, png=True):
     if S["notes"]:
         body.append(h1("Notas"))
         body.append(w_table(["Elemento", "Nota"], S["notes"], scale_widths([1, 3], lw)))
+    if S["assumptions"] or S["questions"]:
+        body.append(h1("Supuestos y puntos por validar"))
+        rows = [("Supuesto", a) for a in S["assumptions"]] + [("Por validar", q) for q in S["questions"]]
+        body.append(w_table(["Tipo", "Detalle"], rows, scale_widths([1, 5], lw)))
     if not has_png:
         body.append(w_para(w_run("Nota: el diagrama se incrustó como SVG (Word 2016 o superior). "
                                  "Para una imagen de respaldo instale Chrome o Edge y vuelva a generar.",
@@ -1615,9 +1907,13 @@ def render_docx(spec, geo, out_path, png=True):
 <Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 <Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
 <Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>
-<Relationship Id="rIdPng" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/diagrama.png"/>
-<Relationship Id="rIdSvg" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/diagrama.svg"/>
 </Relationships>'''
+    image_rels = "".join(
+        f'<Relationship Id="rIdPng{k}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" '
+        f'Target="media/diagrama{k}.png"/><Relationship Id="rIdSvg{k}" '
+        f'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" '
+        f'Target="media/diagrama{k}.svg"/>' for k in range(1, len(images) + 1))
+    doc_rels = doc_rels.replace("</Relationships>", image_rels + "</Relationships>")
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     core = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             f'<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" '
@@ -1644,8 +1940,9 @@ def render_docx(spec, geo, out_path, png=True):
                    'w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>')
         z.writestr("word/footer1.xml", footer)
         z.writestr("word/_rels/document.xml.rels", doc_rels)
-        z.writestr("word/media/diagrama.png", png_bytes)
-        z.writestr("word/media/diagrama.svg", svg)
+        for k, (vs, img, _, _, _) in enumerate(images, 1):
+            z.writestr(f"word/media/diagrama{k}.png", img or blank_png())
+            z.writestr(f"word/media/diagrama{k}.svg", vs)
     return has_png
 
 
@@ -1722,8 +2019,20 @@ def main(argv=None):
             if warnings:
                 report([], warnings)
         elif a.cmd == "preview":
-            Path(a.out).write_text(render_svg(spec, geo), encoding="utf-8")
+            svg = render_svg(spec, geo)
+            if a.out.lower().endswith(".png"):
+                png = svg_to_png(svg, geo["size"])
+                if png is None:
+                    print("ERROR: para PNG se necesita Chrome o Edge instalado; use -o vista.svg",
+                          file=sys.stderr)
+                    return 2
+                Path(a.out).write_bytes(png)
+            else:
+                Path(a.out).write_text(svg, encoding="utf-8")
             print(f"vista previa en {a.out}")
+        if a.cmd in ("generate", "preview") and geo["issues"]:
+            print(f"AVISO diagrama: {geo['issues']} línea(s) no pudieron evitar cruzar un elemento; "
+                  "revise la vista previa (reordenar carriles o nodos suele resolverlo)")
         elif a.cmd == "docx":
             has_png = render_docx(spec, geo, a.out, png=not a.no_png)
             print(f"documento Word en {a.out}"

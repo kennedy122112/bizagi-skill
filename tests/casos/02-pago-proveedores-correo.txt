@@ -1,0 +1,13 @@
+Hola equipo, como quedamos en la reunión les paso cómo hacemos hoy el pago a proveedores para que lo diagramen:
+
+- La factura llega por mesa de partes o a veces por correo (facturas electrónicas), mesa de partes la registra en el SGD
+- Logística revisa que coincida con la orden de compra y el acta de conformidad del área usuaria. Si falta algo (por ej. la guía de remisión o el acta) se le devuelve al proveedor para que subsane
+- Con todo conforme, contabilidad hace el devengado en el SIAF
+- Tesorería hace el girado, y luego el pago se transfiere a la cuenta CCI del proveedor
+- OJO: si el proveedor tiene detracción, tesorería primero deposita la detracción en el Banco de la Nación y recién paga el saldo
+- Al final se archiva el expediente
+
+El plazo máximo desde la conformidad hasta el pago es 15 días, si se pasa hay que informar a la jefatura de administración.
+
+Saludos,
+Carmen

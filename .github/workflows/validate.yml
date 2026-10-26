@@ -18,7 +18,7 @@ jobs:
       - name: Validar y generar los ejemplos
         run: |
           set -e
-          for spec in examples/*.json; do
+          for spec in examples/*.json tests/specs/*.json; do
             python scripts/bizagi_cli.py validate "$spec"
             python scripts/bizagi_cli.py generate "$spec" -o /tmp/out.bpmn --svg /tmp/out.svg
             python scripts/bizagi_cli.py read /tmp/out.bpmn -o /tmp/roundtrip.json

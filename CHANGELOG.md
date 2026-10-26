@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.4.0 — 2026-10-26
+
+Versión surgida de probar el skill con 5 procesos descritos como habla o escribe la gente: un audio transcrito, un correo, notas de reunión, un dictado con correcciones y un pedido de una línea. Cada caso lo modeló un agente independiente y se hizo una segunda ronda de verificación. Ver `tests/`.
+
+### Diagrama
+- Enrutador de líneas que evita atravesar elementos y montarse sobre otras líneas: usa pasillos entre columnas, rodeos en U para un paso opcional y entradas por arriba o abajo de las compuertas.
+- Las etiquetas prueban varias posiciones y usan la primera que no pisa nodos, líneas ni otras etiquetas. Las de las compuertas van junto a su salida.
+- Las anotaciones crecen según su texto. Los nombres de documentos no pisan su ícono, y el texto de una tarea con eventos adjuntos sube para que el evento no lo tape.
+- `preview -o vista.png` genera el PNG directamente. `AVISO diagrama` avisa si alguna línea no pudo evitar un elemento.
+
+### Word y Markdown
+- El orden de lectura sigue el proceso: por etapa y, dentro de cada etapa, primero los desvíos y luego el camino principal.
+- Las compuertas sin nombre se describen como "Decisión", "División en paralelo" o "Unión de caminos". Las uniones no se narran y las paralelas ya no aparecen como decisiones.
+- Los plazos se escriben en palabras ("3 días") y se admite `deadline` en texto ("5 días hábiles").
+- Hay una tabla de roles con las actividades a cargo de cada uno, y los carriles pueden llevar una descripción con `{"name", "doc"}`.
+- La columna *Sistemas* va separada de *Entradas* y *Salidas*.
+- `assumptions` y `questions` en la spec generan la sección "Supuestos y puntos por validar".
+- La ficha muestra los campos estándar como "Por completar" cuando faltan y ya no incluye la marca de la herramienta.
+- Un diagrama grande se imprime en A3: una vista general más páginas de detalle con texto legible.
+
+### SKILL
+- Instrucciones para lenguaje coloquial y correcciones, para cuando no se puede preguntar y para los pedidos de una línea.
+- Recomendaciones sobre compuertas de unión, tareas del sistema, terceros externos, varios canales de entrada, pasos opcionales y plazos que cubren varias actividades.
+- Explica qué controla el layout: el orden de los carriles y el orden de los flujos.
+
 ## 0.3.0 — 2026-10-26
 
 ### Nuevo

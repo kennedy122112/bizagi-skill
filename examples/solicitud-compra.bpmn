@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" name="Solicitud de compra" targetNamespace="http://bizagi-cli/bpmn" exporter="bizagi-cli" exporterVersion="0.2.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" name="Solicitud de compra" targetNamespace="http://bizagi-cli/bpmn" exporter="bizagi-cli" exporterVersion="0.4.0">
   <bpmn:collaboration id="Collaboration_1">
     <bpmn:participant id="Pool_Empresa" name="Empresa" processRef="Process_Pool_Empresa" />
     <bpmn:participant id="Pool_Proveedor" name="Proveedor" processRef="Process_Pool_Proveedor" />
@@ -144,7 +144,7 @@
       <bpmndi:BPMNShape id="gw_aprob_di" bpmnElement="gw_aprob" isMarkerVisible="true">
         <dc:Bounds x="610" y="201" width="40" height="40" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="512" y="184" width="100" height="15" />
+          <dc:Bounds x="648" y="184" width="100" height="15" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="corregir_di" bpmnElement="corregir">
@@ -192,8 +192,8 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
         <di:waypoint x="360" y="87" />
-        <di:waypoint x="395" y="87" />
-        <di:waypoint x="395" y="221" />
+        <di:waypoint x="390" y="87" />
+        <di:waypoint x="390" y="221" />
         <di:waypoint x="420" y="221" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
@@ -205,7 +205,7 @@
         <di:waypoint x="630" y="355" />
         <di:waypoint x="740" y="355" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="673" y="337" width="24" height="16" />
+          <dc:Bounds x="634" y="247" width="20" height="15" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
@@ -213,14 +213,14 @@
         <di:waypoint x="630" y="87" />
         <di:waypoint x="740" y="87" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="648" y="69" width="73" height="16" />
+          <dc:Bounds x="564" y="180" width="62" height="15" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
         <di:waypoint x="650" y="221" />
         <di:waypoint x="772" y="221" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="699" y="203" width="24" height="16" />
+          <dc:Bounds x="666" y="204" width="20" height="15" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
@@ -267,14 +267,14 @@
         <di:waypoint x="790" y="387" />
         <di:waypoint x="790" y="626" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="794" y="498" width="150" height="16" />
+          <dc:Bounds x="794" y="499" width="128" height="15" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MsgFlow_2_di" bpmnElement="MsgFlow_2">
         <di:waypoint x="950" y="626" />
         <di:waypoint x="950" y="373" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="954" y="492" width="80" height="16" />
+          <dc:Bounds x="954" y="492" width="68" height="15" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>

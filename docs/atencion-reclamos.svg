@@ -18,25 +18,25 @@
 <polyline points="310,312 310,259" fill="none" stroke="#6b7280" stroke-width="1.2" stroke-dasharray="2 3" marker-end="url(#open)"/>
 <polyline points="310,259 445,337" fill="none" stroke="#6b7280" stroke-width="1.2" stroke-dasharray="2 3" marker-end="url(#open)"/>
 <polyline points="950,503 950,556" fill="none" stroke="#6b7280" stroke-width="1.2" stroke-dasharray="2 3" marker-end="url(#open)"/>
-<polyline points="630,558 790,503" fill="none" stroke="#6b7280" stroke-width="1.2" stroke-dasharray="2 3" />
+<polyline points="630,561 790,503" fill="none" stroke="#6b7280" stroke-width="1.2" stroke-dasharray="2 3" />
 <polyline points="168,227 260,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
 <polyline points="360,227 420,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
 <polyline points="520,227 610,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
 <polyline points="630,247 630,471 740,471" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
 <line x1="625.0" y1="254.0" x2="635.0" y2="264.0" stroke="#374151"/>
-<text x="685" y="461" font-size="10" text-anchor="middle" dominant-baseline="middle" fill="#1d4ed8" paint-order="stroke" stroke="#fff" stroke-width="3">Sí</text>
+<text x="634" y="260" font-size="10" text-anchor="start" dominant-baseline="middle" fill="#1d4ed8" paint-order="stroke" stroke="#fff" stroke-width="3">Sí</text>
 <polyline points="650,227 740,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
-<text x="695" y="217" font-size="10" text-anchor="middle" dominant-baseline="middle" fill="#1d4ed8" paint-order="stroke" stroke="#fff" stroke-width="3">No</text>
+<text x="676" y="218" font-size="10" text-anchor="middle" dominant-baseline="middle" fill="#1d4ed8" paint-order="stroke" stroke="#fff" stroke-width="3">No</text>
 <polyline points="840,227 932,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
 <polyline points="840,471 900,471" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
 <polyline points="820,521 820,715 900,715" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
 <polyline points="1000,715 1092,715" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
 <polyline points="786,521 786,825 900,825" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
-<polyline points="1000,825 1035,825 1035,227 1060,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
-<polyline points="1000,471 1035,471 1035,227 1060,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
+<polyline points="1000,825 1030,825 1030,227 1060,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
+<polyline points="1000,471 1030,471 1030,227 1060,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
 <polyline points="1160,227 1412,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
 <polyline points="1140,277 1140,337 1220,337" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
-<polyline points="1320,337 1387,337 1387,227 1412,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
+<polyline points="1320,337 1350,337 1350,227 1412,227" fill="none" stroke="#374151" stroke-width="1.3" marker-end="url(#arr)"/>
 <polyline points="150,90 150,209" fill="none" stroke="#374151" stroke-width="1.3" stroke-dasharray="6 4" marker-start="url(#circ)" marker-end="url(#msg)"/>
 <text x="154" y="150" font-size="10" text-anchor="start" dominant-baseline="middle" fill="#1d4ed8" paint-order="stroke" stroke="#fff" stroke-width="3">Reclamo</text>
 <polyline points="1110,195 1110,90" fill="none" stroke="#374151" stroke-width="1.3" stroke-dasharray="6 4" marker-start="url(#circ)" marker-end="url(#msg)"/>
@@ -61,7 +61,7 @@
 <circle cx="950.0" cy="227.0" r="18.0" fill="#fef2f2" stroke="#dc2626" stroke-width="3.5"/>
 <text x="950" y="257" font-size="10" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Reclamo</text><text x="950" y="269" font-size="10" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">improcedente</text>
 <rect x="1060.0" y="195.0" width="100" height="64" rx="9" fill="#eef5ff" stroke="#2563eb" stroke-width="1.5"/>
-<text x="1110" y="225" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Notificar</text><text x="1110" y="237" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">respuesta</text>
+<text x="1110" y="217" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Notificar</text><text x="1110" y="229" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">respuesta</text>
 <text x="1066.0" y="208.0" font-size="11">⚙</text>
 <rect x="1220.0" y="305.0" width="100" height="64" rx="9" fill="#eef5ff" stroke="#2563eb" stroke-width="1.5"/>
 <text x="1270" y="335" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Notificar en</text><text x="1270" y="347" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">físico</text>
@@ -71,17 +71,17 @@
 <path d="M292.0,312.0 h26 l10,10 v40 h-36 z" fill="#fff" stroke="#4b5563"/><path d="M318.0,312.0 v10 h10" fill="none" stroke="#4b5563"/>
 <text x="310" y="374" font-size="10" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Hoja de reclamo</text>
 <path d="M445.0,320.0 v34 a25.0,8 0 0 0 50,0 v-34" fill="#fff" stroke="#4b5563"/><ellipse cx="470.0" cy="320.0" rx="25.0" ry="8" fill="#fff" stroke="#4b5563"/>
-<text x="470" y="368" font-size="10" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Libro de</text><text x="470" y="380" font-size="10" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">reclamaciones</text>
+<text x="470" y="374" font-size="10" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Libro de</text><text x="470" y="386" font-size="10" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">reclamaciones</text>
 <rect x="740.0" y="439.0" width="100" height="64" rx="9" fill="#eef5ff" stroke="#2563eb" stroke-width="1.5"/>
-<text x="790" y="475" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Evaluar reclamo</text>
+<text x="790" y="467" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Evaluar reclamo</text>
 <text x="746.0" y="452.0" font-size="11">👤</text>
 <rect x="900.0" y="439.0" width="100" height="64" rx="9" fill="#eef5ff" stroke="#2563eb" stroke-width="1.5"/>
 <text x="950" y="469" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Redactar</text><text x="950" y="481" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">respuesta</text>
 <text x="906.0" y="452.0" font-size="11">👤</text>
 <path d="M932.0,556.0 h26 l10,10 v40 h-36 z" fill="#fff" stroke="#4b5563"/><path d="M958.0,556.0 v10 h10" fill="none" stroke="#4b5563"/>
 <text x="950" y="618" font-size="10" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Carta de respuesta</text>
-<path d="M587.0,558.0 h-12 v46 h12" fill="none" stroke="#6b7280" stroke-width="1.3"/>
-<text x="581" y="575" font-size="10" text-anchor="start" dominant-baseline="middle" font-weight="normal" fill="#374151">Plazo legal: 30 días</text><text x="581" y="587" font-size="10" text-anchor="start" dominant-baseline="middle" font-weight="normal" fill="#374151">hábiles</text>
+<path d="M572.0,561.0 h-12 v40 h12" fill="none" stroke="#6b7280" stroke-width="1.3"/>
+<text x="568" y="575" font-size="10" text-anchor="start" dominant-baseline="middle" font-weight="normal" fill="#374151">Plazo legal: 30 días</text><text x="568" y="587" font-size="10" text-anchor="start" dominant-baseline="middle" font-weight="normal" fill="#374151">hábiles</text>
 <rect x="900.0" y="683.0" width="100" height="64" rx="9" fill="#eef5ff" stroke="#2563eb" stroke-width="1.5"/>
 <text x="950" y="713" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">Alertar a</text><text x="950" y="725" font-size="10.5" text-anchor="middle" dominant-baseline="middle" font-weight="normal" fill="#1f2937">jefatura</text>
 <text x="906.0" y="696.0" font-size="11">✉</text>

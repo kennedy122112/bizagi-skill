@@ -1,0 +1,49 @@
+{
+  "name": "Reembolso de gastos de viaje",
+  "doc": "Reembolsar al empleado los gastos de viaje que rinde, desde la presentación de la rendición hasta el pago por Finanzas.",
+  "meta": {"version": "0.1", "responsable": "Finanzas"},
+  "assumptions": [
+    "La rendición la presenta el mismo empleado que viajó, una vez concluido el viaje.",
+    "Si Finanzas encuentra observaciones subsanables, el empleado corrige la rendición y vuelve a revisión.",
+    "Si la rendición no procede (gasto no reembolsable), Finanzas la rechaza y el proceso termina.",
+    "No se modela aprobación del jefe inmediato porque no se mencionó."
+  ],
+  "questions": [
+    "¿El jefe inmediato debe aprobar la rendición antes de que Finanzas la revise?",
+    "¿Qué comprobantes deben acompañar la rendición y existe un plazo para presentarla?",
+    "¿Hay un plazo máximo para que Finanzas revise y pague?",
+    "¿Cómo se paga el reembolso (transferencia, planilla, caja) y en qué sistema se registra?",
+    "¿Se notifica al empleado el rechazo o las observaciones, y por qué medio?",
+    "¿Existe un límite de veces que una rendición puede observarse antes de rechazarse?"
+  ],
+  "lanes": [
+    {"name": "Empleado", "doc": "Persona que realizó el viaje y solicita el reembolso"},
+    {"name": "Finanzas", "doc": "Revisa la rendición y paga el reembolso"}
+  ],
+  "nodes": [
+    {"id": "inicio", "type": "start", "name": "Viaje concluido", "lane": "Empleado"},
+    {"id": "presentar", "type": "userTask", "name": "Presentar rendición de gastos", "lane": "Empleado",
+     "doc": "El empleado presenta la rendición de los gastos del viaje con sus comprobantes."},
+    {"id": "revisar", "type": "userTask", "name": "Revisar rendición", "lane": "Finanzas",
+     "doc": "Finanzas verifica que los gastos rendidos sean reembolsables y estén sustentados."},
+    {"id": "gw", "type": "exclusive", "name": "¿Rendición conforme?", "lane": "Finanzas"},
+    {"id": "corregir", "type": "userTask", "name": "Corregir rendición", "lane": "Empleado",
+     "doc": "El empleado subsana las observaciones de Finanzas y vuelve a presentar la rendición."},
+    {"id": "pagar", "type": "userTask", "name": "Pagar reembolso", "lane": "Finanzas",
+     "doc": "Finanzas paga al empleado el importe aprobado."},
+    {"id": "fin_ok", "type": "end", "name": "Reembolso pagado", "lane": "Finanzas"},
+    {"id": "fin_rech", "type": "end", "name": "Rendición rechazada", "lane": "Finanzas"},
+    {"id": "rendicion", "type": "dataObject", "name": "Rendición de gastos y comprobantes"}
+  ],
+  "flows": [
+    "inicio -> presentar",
+    "presentar -> revisar",
+    "revisar -> gw",
+    {"from": "gw", "to": "pagar", "name": "Sí", "default": true},
+    "gw -> corregir : Observada",
+    "gw -> fin_rech : Rechazada",
+    "corregir -> revisar",
+    "pagar -> fin_ok"
+  ],
+  "associations": ["presentar -> rendicion", "rendicion -> revisar"]
+}

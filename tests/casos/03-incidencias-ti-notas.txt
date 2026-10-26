@@ -1,0 +1,11 @@
+Atención incidencias TI (notas reunión)
+- usuario reporta x correo o tel o portal
+- mesa ayuda registra ticket en GLPI, clasifica prioridad (crítica/alta/media/baja)
+- N1 intenta resolver, tiene 30 min
+- no resuelve -> escala N2 (soporte especializado)
+- si es tema de HW en garantía -> se manda al proveedor externo, se espera respuesta
+- SLA crítica 4h, si se vence se avisa al coord. de TI
+- resuelto -> se pide conformidad al usuario
+- usuario no responde en 48h -> cierre automático
+- usuario dice que no está resuelto -> vuelve a N2
+- cierre ticket + encuesta satisfacción

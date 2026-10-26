@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.3.0-0a7bbb?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.4.0-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agents" src="https://img.shields.io/badge/agents-3-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -113,6 +113,10 @@ python scripts/bizagi_cli.py generate examples/solicitud-compra.json -o process.
 ```
 
 The spec format and the modeling rules are described in [SKILL.md](SKILL.md).
+
+## 🧪 Natural-language tests
+
+The skill was tested on processes described the way people actually write or dictate them: a transcribed voice note, an email full of jargon, meeting notes with abbreviations, a dictation with self-corrections, and a one-line request. An independent agent modeled each case using only the text and `SKILL.md`, and the problems it found were fixed in v0.4.0. The cases and their specs are in [`tests/`](tests/), and CI regenerates them on every push.
 
 ## ⚠️ Limitations
 

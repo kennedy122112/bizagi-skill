@@ -1,0 +1,259 @@
+{
+  "name": "Pago a proveedores",
+  "doc": "Describe cómo la entidad recibe, revisa, devenga, gira y paga las facturas de proveedores, desde que llega la factura hasta que se archiva el expediente.",
+  "meta": {
+    "codigo": "PR-ADM-001",
+    "version": "1.0",
+    "responsable": "Jefatura de Administración",
+    "area": "Administración",
+    "elaborado": "Carmen"
+  },
+  "assumptions": [
+    "La factura que llega por mesa de partes y la que llega por correo (factura electrónica) siguen el mismo tratamiento; mesa de partes registra ambas en el SGD.",
+    "Cuando el proveedor subsana, la documentación vuelve a la revisión de Logística dentro del mismo expediente.",
+    "El archivo del expediente lo realiza Tesorería, al ser la última área que interviene.",
+    "El aviso por exceder el plazo de 15 días lo emite Tesorería y no detiene el pago.",
+    "El plazo de 15 días se cuenta en días calendario."
+  ],
+  "questions": [
+    "¿Quién archiva el expediente: Tesorería, Logística u otra área?",
+    "¿Los 15 días son hábiles o calendario, y corren desde el acta de conformidad del área usuaria o desde la conformidad de Logística?",
+    "¿Quién informa a la Jefatura de Administración cuando se excede el plazo?",
+    "¿Hay un plazo para que el proveedor subsane? ¿Qué pasa si no lo hace?",
+    "¿Las facturas electrónicas que llegan por correo también pasan por mesa de partes?"
+  ],
+  "pools": [
+    {
+      "name": "Entidad",
+      "lanes": [
+        {
+          "name": "Mesa de partes",
+          "doc": "Recibe y registra las facturas en el SGD"
+        },
+        {
+          "name": "Logística",
+          "doc": "Verifica la factura contra la orden de compra y el acta de conformidad"
+        },
+        {
+          "name": "Contabilidad",
+          "doc": "Registra el devengado en el SIAF"
+        },
+        {
+          "name": "Tesorería",
+          "doc": "Registra el girado, deposita la detracción y paga al proveedor"
+        }
+      ]
+    },
+    {
+      "name": "Proveedor",
+      "blackbox": true
+    },
+    {
+      "name": "Banco de la Nación",
+      "blackbox": true
+    }
+  ],
+  "nodes": [
+    {
+      "id": "inicio",
+      "type": "startMessage",
+      "name": "Factura recibida",
+      "lane": "Mesa de partes"
+    },
+    {
+      "id": "registrar",
+      "type": "userTask",
+      "name": "Registrar factura en el SGD",
+      "lane": "Mesa de partes",
+      "doc": "Registra la factura recibida por mesa de partes o por correo (factura electrónica) en el Sistema de Gestión Documental."
+    },
+    {
+      "id": "revisar",
+      "type": "userTask",
+      "name": "Revisar factura contra orden de compra y acta",
+      "lane": "Logística",
+      "doc": "Verifica que la factura coincida con la orden de compra y el acta de conformidad del área usuaria, y que esté completa la documentación (p. ej. guía de remisión)."
+    },
+    {
+      "id": "gw_conforme",
+      "type": "exclusive",
+      "name": "¿Documentación conforme?",
+      "lane": "Logística"
+    },
+    {
+      "id": "devengar",
+      "type": "userTask",
+      "name": "Registrar devengado en el SIAF",
+      "lane": "Contabilidad",
+      "doc": "Con la documentación conforme, registra el devengado del compromiso en el SIAF."
+    },
+    {
+      "id": "girar",
+      "type": "userTask",
+      "name": "Registrar girado en el SIAF",
+      "lane": "Tesorería",
+      "doc": "Registra el girado del pago en el SIAF."
+    },
+    {
+      "id": "gw_detr",
+      "type": "exclusive",
+      "name": "¿Proveedor sujeto a detracción?",
+      "lane": "Tesorería"
+    },
+    {
+      "id": "detraccion",
+      "type": "sendTask",
+      "name": "Depositar detracción en el Banco de la Nación",
+      "lane": "Tesorería",
+      "doc": "Deposita el monto de la detracción en la cuenta de detracciones del proveedor en el Banco de la Nación, antes de pagar el saldo."
+    },
+    {
+      "id": "gw_une",
+      "type": "exclusive",
+      "lane": "Tesorería"
+    },
+    {
+      "id": "pagar",
+      "type": "sendTask",
+      "name": "Transferir pago a la cuenta CCI del proveedor",
+      "lane": "Tesorería",
+      "doc": "Transfiere el importe (o el saldo, si hubo detracción) a la cuenta CCI del proveedor."
+    },
+    {
+      "id": "archivar",
+      "type": "manualTask",
+      "name": "Archivar expediente",
+      "lane": "Tesorería",
+      "doc": "Archiva el expediente de pago con toda su documentación."
+    },
+    {
+      "id": "fin",
+      "type": "end",
+      "name": "Proveedor pagado",
+      "lane": "Tesorería"
+    },
+    {
+      "id": "vence",
+      "type": "timer",
+      "name": "15 días desde la conformidad",
+      "attachedTo": "pagar",
+      "timer": "P15D",
+      "deadline": "15 días desde la conformidad",
+      "interrupting": false
+    },
+    {
+      "id": "informar",
+      "type": "userTask",
+      "name": "Informar demora a la Jefatura de Administración",
+      "lane": "Tesorería",
+      "doc": "Informa a la Jefatura de Administración que se superó el plazo máximo de 15 días entre la conformidad y el pago."
+    },
+    {
+      "id": "fin_demora",
+      "type": "end",
+      "name": "Demora informada",
+      "lane": "Tesorería"
+    },
+    {
+      "id": "devolver",
+      "type": "sendTask",
+      "name": "Devolver factura al proveedor para subsanar",
+      "lane": "Logística",
+      "doc": "Comunica al proveedor lo que falta (guía de remisión, acta u otro) para que lo subsane."
+    },
+    {
+      "id": "recibir_sub",
+      "type": "receiveTask",
+      "name": "Recibir documentación subsanada",
+      "lane": "Logística",
+      "doc": "Recibe del proveedor la documentación corregida o completada."
+    },
+    {
+      "id": "d_factura",
+      "type": "dataObject",
+      "name": "Factura"
+    },
+    {
+      "id": "d_oc",
+      "type": "dataObject",
+      "name": "Orden de compra"
+    },
+    {
+      "id": "d_acta",
+      "type": "dataObject",
+      "name": "Acta de conformidad"
+    },
+    {
+      "id": "d_guia",
+      "type": "dataObject",
+      "name": "Guía de remisión"
+    },
+    {
+      "id": "d_exp",
+      "type": "dataObject",
+      "name": "Expediente de pago"
+    },
+    {
+      "id": "s_sgd",
+      "type": "dataStore",
+      "name": "SGD"
+    },
+    {
+      "id": "s_siaf",
+      "type": "dataStore",
+      "name": "SIAF"
+    },
+    {
+      "id": "nota_plazo",
+      "type": "annotation",
+      "text": "Plazo máximo de 15 días desde la conformidad hasta el pago; corre desde la conformidad de la factura."
+    }
+  ],
+  "flows": [
+    "inicio -> registrar",
+    "registrar -> revisar",
+    "revisar -> gw_conforme",
+    "gw_conforme -> devolver : No",
+    {
+      "from": "gw_conforme",
+      "to": "devengar",
+      "name": "Sí",
+      "default": true
+    },
+    "devolver -> recibir_sub",
+    "recibir_sub -> revisar",
+    "devengar -> girar",
+    "girar -> gw_detr",
+    {
+      "from": "gw_detr",
+      "to": "gw_une",
+      "name": "No",
+      "default": true
+    },
+    "gw_detr -> detraccion : Sí",
+    "detraccion -> gw_une",
+    "gw_une -> pagar",
+    "pagar -> archivar",
+    "archivar -> fin",
+    "vence -> informar",
+    "informar -> fin_demora"
+  ],
+  "messageFlows": [
+    "Proveedor -> inicio : Factura",
+    "devolver -> Proveedor : Observaciones de la factura",
+    "Proveedor -> recibir_sub : Documentación subsanada",
+    "detraccion -> Banco de la Nación : Depósito de detracción",
+    "pagar -> Proveedor : Abono en cuenta CCI"
+  ],
+  "associations": [
+    "d_factura -> registrar",
+    "registrar -> s_sgd",
+    "d_oc -> revisar",
+    "d_acta -> revisar",
+    "d_guia -> revisar",
+    "devengar -> s_siaf",
+    "girar -> s_siaf",
+    "archivar -> d_exp",
+    "nota_plazo -> pagar"
+  ]
+}
