@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.4.0-0a7bbb?style=for-the-badge">
+  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.4.1-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agentes" src="https://img.shields.io/badge/agentes-3-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -79,23 +79,34 @@ Las posiciones del diagrama se calculan automáticamente.
 
 ## 🚀 Instalación
 
-Requisito: **Python 3.9 o superior**. No usa paquetes externos.
+Requisitos: **git** y **Python 3.9 o superior**. No usa paquetes externos.
 
-Clona el repo en la carpeta de skills de tu agente:
+**Windows (PowerShell):**
 
-```bash
-# Claude Code
-git clone https://github.com/kennedy122112/bizagi-skill ~/.claude/skills/bizagi
-
-# Codex
-git clone https://github.com/kennedy122112/bizagi-skill ~/.codex/skills/bizagi
-
-# OpenCode
-git clone https://github.com/kennedy122112/bizagi-skill ~/.config/opencode/skill/bizagi
+```powershell
+irm https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.ps1 | iex
 ```
 
-> Las rutas de skills pueden variar según la versión de cada agente. Si el tuyo no soporta skills, añade al `AGENTS.md` de tu proyecto:
-> *"Para modelar procesos de Bizagi, sigue las instrucciones de `<ruta>/bizagi/SKILL.md`."*
+**macOS / Linux / Git Bash:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.sh | bash
+```
+
+El instalador deja **un solo clon** en `~/.agents/skills/bizagi`, la ruta estándar de Agent Skills, y lo deja disponible para todos tus agentes sin duplicarlo:
+
+| Agente | Cómo lo encuentra |
+|---|---|
+| Codex | Lee `~/.agents/skills` |
+| OpenCode | Lee `~/.agents/skills` |
+| Gemini CLI / Antigravity | Lee `~/.agents/skills` (alias de `~/.gemini/skills`) |
+| Cursor | Lee `~/.agents/skills` |
+| Claude Code | Enlace `~/.claude/skills/bizagi` al mismo clon |
+
+Para **actualizar**, vuelve a ejecutar el mismo comando (hace `git pull`). Para **desinstalar**: `.\install.ps1 -Uninstall` o `bash install.sh --uninstall`. Si ya tenías una copia anterior, se mueve a la carpeta temporal en lugar de borrarse.
+
+Si tu agente no soporta skills, añade al `AGENTS.md` de tu proyecto:
+> *"Para modelar procesos de Bizagi, sigue las instrucciones de `~/.agents/skills/bizagi/SKILL.md`."*
 
 ## 🔁 Flujo de trabajo
 

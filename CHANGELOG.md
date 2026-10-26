@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 — 2026-10-26
+
+- Instalador de una línea para Windows (`install.ps1`) y para macOS, Linux y Git Bash (`install.sh`).
+- Deja un solo clon en `~/.agents/skills/bizagi` para Codex, OpenCode, Gemini y Cursor, y un enlace para Claude Code. Volver a ejecutarlo actualiza; también permite desinstalar.
+- Si había una copia anterior, la respalda en la carpeta temporal en lugar de borrarla.
+
 ## 0.4.0 — 2026-10-26
 
 Versión surgida de probar el skill con 5 procesos descritos como habla o escribe la gente: un audio transcrito, un correo, notas de reunión, un dictado con correcciones y un pedido de una línea. Cada caso lo modeló un agente independiente y se hizo una segunda ronda de verificación. Ver `tests/`.

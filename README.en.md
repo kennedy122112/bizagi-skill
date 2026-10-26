@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.4.0-0a7bbb?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.4.1-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agents" src="https://img.shields.io/badge/agents-3-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -81,23 +81,34 @@ Diagram positions are computed automatically.
 
 ## 🚀 Install
 
-Requirement: **Python 3.9 or later**. No third-party packages.
+Requirements: **git** and **Python 3.9 or later**. No third-party packages.
 
-Clone the repo into your agent's skills folder:
+**Windows (PowerShell):**
 
-```bash
-# Claude Code
-git clone https://github.com/kennedy122112/bizagi-skill ~/.claude/skills/bizagi
-
-# Codex
-git clone https://github.com/kennedy122112/bizagi-skill ~/.codex/skills/bizagi
-
-# OpenCode
-git clone https://github.com/kennedy122112/bizagi-skill ~/.config/opencode/skill/bizagi
+```powershell
+irm https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.ps1 | iex
 ```
 
-> Skill paths can change between agent versions. If your agent doesn't support skills, add this line to your project's `AGENTS.md`:
-> *"To model Bizagi processes, follow `<path>/bizagi/SKILL.md`."*
+**macOS / Linux / Git Bash:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.sh | bash
+```
+
+The installer keeps **a single clone** in `~/.agents/skills/bizagi`, the standard Agent Skills location, and makes it available to every agent without duplicating it:
+
+| Agent | How it finds the skill |
+|---|---|
+| Codex | Reads `~/.agents/skills` |
+| OpenCode | Reads `~/.agents/skills` |
+| Gemini CLI / Antigravity | Reads `~/.agents/skills` (alias of `~/.gemini/skills`) |
+| Cursor | Reads `~/.agents/skills` |
+| Claude Code | Link `~/.claude/skills/bizagi` to the same clone |
+
+To **update**, run the same command again (it runs `git pull`). To **uninstall**: `.\install.ps1 -Uninstall` or `bash install.sh --uninstall`. Any previous copy is moved to the temp folder, not deleted.
+
+If your agent doesn't support skills, add this to your project's `AGENTS.md`:
+> *"To model Bizagi processes, follow `~/.agents/skills/bizagi/SKILL.md`."*
 
 ## 🔁 Workflow
 

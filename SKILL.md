@@ -5,7 +5,7 @@ description: Modela procesos para Bizagi Modeler a partir de lenguaje natural, 1
 
 # Bizagi desde lenguaje natural
 
-Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta de este skill (p. ej. `~/.claude/skills/bizagi/scripts/bizagi_cli.py`). Solo usa la biblioteca estándar de Python 3.9 o superior.
+Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta de este skill (normalmente `~/.agents/skills/bizagi/scripts/bizagi_cli.py`). Solo usa la biblioteca estándar de Python 3.9 o superior.
 
 | Comando | Para qué |
 |---|---|

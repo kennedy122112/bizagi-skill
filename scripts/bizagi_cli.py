@@ -21,7 +21,7 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict, deque
 from pathlib import Path
 
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 
 NS = {
     "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",
