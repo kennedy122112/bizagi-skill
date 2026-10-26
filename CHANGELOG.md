@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1 — 2026-10-26
+
+- El proyecto ahora se llama **bizagi-steroids**, antes bizagi-skill, como su proyecto hermano figma-steroids. GitHub redirige las URLs anteriores.
+  - Instalación: `npx -y github:kennedy122112/bizagi-steroids setup`.
+  - Plugin: `/plugin install bizagi --marketplace kennedy122112/bizagi-steroids`.
+- La copia local pasa a `~/.bizagi-steroids`. Los instaladores reapuntan los enlaces y respaldan la carpeta anterior, `~/.bizagi-skill`.
+- Se aclara en los README que es un proyecto independiente, no afiliado a Bizagi.
+
 ## 0.6.0 — 2026-10-26
 
 ### Instalación plug and play

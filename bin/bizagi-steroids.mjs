@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Instala el skill "bizagi" en tus agentes de IA:  npx -y github:kennedy122112/bizagi-skill setup
+// Instala el skill "bizagi" en tus agentes de IA:  npx -y github:kennedy122112/bizagi-steroids setup
 //
-// Deja una copia estable en ~/.bizagi-skill (npx borra su caché) y la enlaza en ~/.agents/skills,
+// Deja una copia estable en ~/.bizagi-steroids (npx borra su caché) y la enlaza en ~/.agents/skills,
 // la ruta estándar que leen Codex, OpenCode, Gemini CLI / Antigravity y Cursor, y en
 // ~/.claude/skills para Claude Code. Volver a ejecutarlo actualiza.
 import {
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const VERSION = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
 const HOME = homedir();
-const STORE = join(HOME, '.bizagi-skill');
+const STORE = join(HOME, '.bizagi-steroids');
 const SKILL = join(STORE, 'skills', 'bizagi');
 const LINKS = [
   { label: 'Agent Skills (Codex, OpenCode, Gemini, Cursor)', path: join(HOME, '.agents', 'skills', 'bizagi') },
@@ -28,12 +28,12 @@ const AGENTS = [
   ['Gemini CLI / Antigravity', 'gemini', '.gemini'],
   ['Cursor', 'cursor', '.cursor'],
 ];
-const HELP = `bizagi-skill ${VERSION}
+const HELP = `bizagi-steroids ${VERSION}
 
 Uso:
-  npx -y github:kennedy122112/bizagi-skill setup       instala o actualiza el skill en tus agentes
-  npx -y github:kennedy122112/bizagi-skill uninstall   lo quita (las copias previas van a la carpeta temporal)
-  npx -y github:kennedy122112/bizagi-skill status      muestra dónde está instalado
+  npx -y github:kennedy122112/bizagi-steroids setup       instala o actualiza el skill en tus agentes
+  npx -y github:kennedy122112/bizagi-steroids uninstall   lo quita (las copias previas van a la carpeta temporal)
+  npx -y github:kennedy122112/bizagi-steroids status      muestra dónde está instalado
 `;
 
 const isLink = (p) => { try { return lstatSync(p).isSymbolicLink(); } catch { return false; } };
@@ -77,7 +77,7 @@ function onPath(cmd) {
 }
 
 function setup() {
-  // 1) copia estable: si ~/.bizagi-skill es un clon de git (install.ps1/sh) se actualiza con git
+  // 1) copia estable: si ~/.bizagi-steroids es un clon de git (install.ps1/sh) se actualiza con git
   if (existsSync(join(STORE, '.git'))) {
     console.log(`Actualizando ${STORE} (git) ...`);
     if (run('git', ['-C', STORE, 'pull', '--ff-only', '--quiet']) === null) {
@@ -101,6 +101,9 @@ function setup() {
     const found = onPath(cmd) || existsSync(join(HOME, dir));
     report.push([label, found ? 'lee ~/.agents/skills' : 'no detectado (lo verá si lo instalas)']);
   }
+  // el proyecto antes se llamaba bizagi-skill: su copia ya no la usa ningún enlace
+  const old = join(HOME, '.bizagi-skill');
+  if (existsSync(old)) { console.log('Retirando la copia con el nombre anterior (bizagi-skill) ...'); backup(old); }
   // 3) comprobación
   const py = python();
   const v = py ? run(py, [join(SKILL, 'scripts', 'bizagi_cli.py'), '--version']) : null;
@@ -121,7 +124,7 @@ function uninstall() {
 }
 
 function status() {
-  console.log(`bizagi-skill ${VERSION}`);
+  console.log(`bizagi-steroids ${VERSION}`);
   console.log(`  copia estable  ${existsSync(SKILL) ? SKILL : 'no instalada'}`);
   for (const l of LINKS) {
     const state = isLink(l.path) ? 'enlace' : exists(l.path) ? 'carpeta (no es de este instalador)' : 'no instalado';

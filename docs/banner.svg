@@ -21,7 +21,7 @@
   <rect width="1200" height="400" rx="28" fill="url(#glow)"/>
   <rect width="1200" height="400" rx="28" fill="url(#glow2)"/>
 
-  <text x="70" y="150" font-size="84" font-weight="800" fill="#ffffff" letter-spacing="-1">bizagi-skill</text>
+  <text x="70" y="150" font-size="70" font-weight="800" fill="#ffffff" letter-spacing="-1">bizagi-steroids</text>
   <text x="72" y="202" font-size="28" fill="#fde2cf">Del lenguaje natural a tu Bizagi Modeler.</text>
   <text x="72" y="244" font-size="20" fill="#fdba74">Claude Code · Codex · OpenCode · sin API · sin MCP · 100 % local</text>
 

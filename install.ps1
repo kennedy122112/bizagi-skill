@@ -3,25 +3,25 @@
   Instala el skill "bizagi" para todos tus agentes de IA (Windows).
 
 .DESCRIPTION
-  Clona el repo en ~/.bizagi-skill y enlaza su skill en ~/.agents/skills/bizagi, la ruta
+  Clona el repo en ~/.bizagi-steroids y enlaza su skill en ~/.agents/skills/bizagi, la ruta
   estándar que leen Codex, OpenCode, Gemini CLI / Antigravity y Cursor, y en
   ~/.claude/skills/bizagi para Claude Code (junctions: no piden administrador).
   Volver a ejecutar el script actualiza todo con git pull.
-  Alternativa con Node: npx -y github:kennedy122112/bizagi-skill setup
+  Alternativa con Node: npx -y github:kennedy122112/bizagi-steroids setup
 
 .EXAMPLE
-  irm https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.ps1 | iex
+  irm https://raw.githubusercontent.com/kennedy122112/bizagi-steroids/main/install.ps1 | iex
 
 .EXAMPLE
-  & ([scriptblock]::Create((irm https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.ps1))) -Uninstall
+  & ([scriptblock]::Create((irm https://raw.githubusercontent.com/kennedy122112/bizagi-steroids/main/install.ps1))) -Uninstall
 #>
 param(
     [switch]$Uninstall,
-    [string]$Repo = "https://github.com/kennedy122112/bizagi-skill.git"
+    [string]$Repo = "https://github.com/kennedy122112/bizagi-steroids.git"
 )
 
 $ErrorActionPreference = "Stop"
-$Store = Join-Path $HOME ".bizagi-skill"
+$Store = Join-Path $HOME ".bizagi-steroids"
 $Skill = Join-Path $Store "skills\bizagi"
 $Links = @(
     @{ Label = "Agent Skills (Codex, OpenCode, Gemini, Cursor)"; Path = (Join-Path $HOME ".agents\skills\bizagi"); Only = $null },
@@ -55,12 +55,12 @@ if ($Uninstall) {
 }
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    throw "Se necesita git (https://git-scm.com/download/win), o usa: npx -y github:kennedy122112/bizagi-skill setup"
+    throw "Se necesita git (https://git-scm.com/download/win), o usa: npx -y github:kennedy122112/bizagi-steroids setup"
 }
 $python = @("python", "py", "python3") | Where-Object { Get-Command $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
 if (-not $python) { Say "Aviso: no se encontró Python 3.9+; el skill lo necesita para ejecutarse." "Yellow" }
 
-# 1) clon en ~/.bizagi-skill
+# 1) clon en ~/.bizagi-steroids
 if (Test-Path (Join-Path $Store ".git")) {
     Say "Actualizando $Store ..."
     git -C $Store pull --ff-only --quiet
@@ -88,6 +88,10 @@ $detect = [ordered]@{
 foreach ($k in $detect.Keys) {
     $report[$k] = if ($detect[$k]) { "lee ~/.agents/skills" } else { "no detectado (lo verá si lo instalas)" }
 }
+
+# el proyecto antes se llamaba bizagi-skill: su copia ya no la usa ningún enlace
+$old = Join-Path $HOME ".bizagi-skill"
+if (Test-Path $old) { Say "Retirando la copia con el nombre anterior (bizagi-skill) ..."; Backup-Folder $old }
 
 # 3) comprobación
 $version = if ($python) { & $python (Join-Path $Skill "scripts\bizagi_cli.py") --version 2>$null } else { "sin Python" }

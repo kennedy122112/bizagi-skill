@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Instala el skill "bizagi" para todos tus agentes de IA (macOS / Linux / Git Bash).
 #
-# Clona el repo en ~/.bizagi-skill y enlaza su skill en ~/.agents/skills/bizagi, la ruta
+# Clona el repo en ~/.bizagi-steroids y enlaza su skill en ~/.agents/skills/bizagi, la ruta
 # estándar que leen Codex, OpenCode, Gemini CLI / Antigravity y Cursor, y en
 # ~/.claude/skills/bizagi para Claude Code. Volver a ejecutar el script actualiza todo.
-# Alternativa con Node: npx -y github:kennedy122112/bizagi-skill setup
+# Alternativa con Node: npx -y github:kennedy122112/bizagi-steroids setup
 #
-#   curl -fsSL https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/kennedy122112/bizagi-steroids/main/install.sh | bash
 #   bash install.sh --uninstall
 set -euo pipefail
 
-REPO="${BIZAGI_SKILL_REPO:-https://github.com/kennedy122112/bizagi-skill.git}"
-STORE="$HOME/.bizagi-skill"
+REPO="${BIZAGI_STEROIDS_REPO:-https://github.com/kennedy122112/bizagi-steroids.git}"
+STORE="$HOME/.bizagi-steroids"
 SKILL="$STORE/skills/bizagi"
 LINKS=("Agent Skills (Codex, OpenCode, Gemini, Cursor)|$HOME/.agents/skills/bizagi|" \
        "Claude Code|$HOME/.claude/skills/bizagi|$HOME/.claude")
@@ -53,12 +53,12 @@ if [ "${1:-}" = "--uninstall" ]; then
   exit 0
 fi
 
-command -v git >/dev/null || { echo "Se necesita git, o usa: npx -y github:kennedy122112/bizagi-skill setup" >&2; exit 1; }
+command -v git >/dev/null || { echo "Se necesita git, o usa: npx -y github:kennedy122112/bizagi-steroids setup" >&2; exit 1; }
 PY=""
 for c in python3 python; do command -v "$c" >/dev/null && { PY="$c"; break; }; done
 [ -z "$PY" ] && echo "Aviso: no se encontró Python 3.9+; el skill lo necesita para ejecutarse."
 
-# 1) clon en ~/.bizagi-skill
+# 1) clon en ~/.bizagi-steroids
 if [ -d "$STORE/.git" ]; then
   echo "Actualizando $STORE ..."
   git -C "$STORE" pull --ff-only --quiet
@@ -85,6 +85,9 @@ for row in "Codex|codex|$HOME/.codex" "OpenCode|opencode|$HOME/.config/opencode"
   if detect "$cmd" "$dir"; then state="lee ~/.agents/skills"; else state="no detectado (lo verá si lo instalas)"; fi
   report+="$(printf '  %-48s %s' "$label" "$state")\n"
 done
+
+# el proyecto antes se llamaba bizagi-skill: su copia ya no la usa ningún enlace
+if [ -e "$HOME/.bizagi-skill" ]; then echo "Retirando la copia con el nombre anterior (bizagi-skill) ..."; backup "$HOME/.bizagi-skill"; fi
 
 # 3) comprobación
 version="sin Python"

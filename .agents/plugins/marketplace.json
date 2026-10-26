@@ -1,7 +1,7 @@
 {
-  "name": "bizagi-skill",
+  "name": "bizagi-steroids",
   "interface": {
-    "displayName": "bizagi-skill"
+    "displayName": "bizagi-steroids"
   },
   "plugins": [
     {

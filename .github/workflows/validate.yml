@@ -22,11 +22,11 @@ jobs:
         run: |
           set -e
           export HOME="$(mktemp -d)"; mkdir -p "$HOME/.claude"
-          node bin/bizagi-skill.mjs setup
+          node bin/bizagi-steroids.mjs setup
           test -f "$HOME/.agents/skills/bizagi/SKILL.md"
           test -f "$HOME/.claude/skills/bizagi/scripts/bizagi_cli.py"
-          node bin/bizagi-skill.mjs status
-          node bin/bizagi-skill.mjs uninstall
+          node bin/bizagi-steroids.mjs status
+          node bin/bizagi-steroids.mjs uninstall
           test ! -e "$HOME/.agents/skills/bizagi"
       - name: Validar y generar los ejemplos
         run: |

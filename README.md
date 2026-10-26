@@ -1,11 +1,11 @@
-# bizagi-skill
+# bizagi-steroids
 
 <p align="center">
   <a href="README.md">🇪🇸 Español</a> | <a href="README.en.md">🇺🇸 English</a>
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.6.0-0a7bbb?style=for-the-badge">
+  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.6.1-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agentes" src="https://img.shields.io/badge/agentes-5-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -14,20 +14,22 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kennedy122112/bizagi-skill/stargazers"><img alt="stars" src="https://img.shields.io/github/stars/kennedy122112/bizagi-skill?style=flat&logo=github&label=stars"></a>
-  <a href="https://github.com/kennedy122112/bizagi-skill/actions/workflows/validate.yml"><img alt="validate" src="https://github.com/kennedy122112/bizagi-skill/actions/workflows/validate.yml/badge.svg"></a>
+  <a href="https://github.com/kennedy122112/bizagi-steroids/stargazers"><img alt="stars" src="https://img.shields.io/github/stars/kennedy122112/bizagi-steroids?style=flat&logo=github&label=stars"></a>
+  <a href="https://github.com/kennedy122112/bizagi-steroids/actions/workflows/validate.yml"><img alt="validate" src="https://github.com/kennedy122112/bizagi-steroids/actions/workflows/validate.yml/badge.svg"></a>
   <img alt="funciona con" src="https://img.shields.io/badge/funciona%20con-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20OpenCode%20%C2%B7%20Gemini%20%C2%B7%20Cursor-e8601c?style=flat">
   <img alt="powered by" src="https://img.shields.io/badge/powered%20by-Python%20stdlib-3776ab?style=flat&logo=python&logoColor=white">
 </p>
 
 <p align="center">
-  <img alt="bizagi-skill: del lenguaje natural a tu Bizagi Modeler" src="docs/banner.svg" width="100%">
+  <img alt="bizagi-steroids: del lenguaje natural a tu Bizagi Modeler" src="docs/banner.svg" width="100%">
 </p>
 
 <p align="center">
   <b>Describe tu proceso en lenguaje natural. Tu agente de IA lo modela y lo deja listo para importarlo en Bizagi.</b><br>
   Local, sin API, sin MCP y sin dependencias.
 </p>
+
+<p align="center"><sub>Proyecto independiente y de código abierto, no afiliado a Bizagi. Bizagi y Bizagi Modeler son marcas de sus respectivos titulares.</sub></p>
 
 ---
 
@@ -109,7 +111,7 @@ Requisito para usar el skill: **Python 3.9 o superior**. No usa paquetes externo
 ### 1. Un solo comando (recomendado)
 
 ```bash
-npx -y github:kennedy122112/bizagi-skill setup
+npx -y github:kennedy122112/bizagi-steroids setup
 ```
 
 Solo necesita **Node.js 18 o superior**, sin git. Deja el skill disponible para **todos tus agentes** a la vez y sin duplicarlo:
@@ -122,7 +124,7 @@ Solo necesita **Node.js 18 o superior**, sin git. Deja el skill disponible para 
 | Cursor | Lee `~/.agents/skills` |
 | Claude Code | Enlace en `~/.claude/skills/bizagi` |
 
-La copia vive en `~/.bizagi-skill` y los agentes la usan mediante enlaces.
+La copia vive en `~/.bizagi-steroids` y los agentes la usan mediante enlaces.
 - **Actualizar:** vuelve a ejecutar el mismo comando.
 - **Ver el estado:** `… status`.
 - **Desinstalar:** `… uninstall`.
@@ -134,21 +136,21 @@ Si ya tenías una instalación anterior, se mueve a la carpeta temporal en lugar
 **Claude Code:**
 
 ```
-/plugin install bizagi --marketplace kennedy122112/bizagi-skill
+/plugin install bizagi --marketplace kennedy122112/bizagi-steroids
 ```
 
 En versiones anteriores a la 2.1.275, o desde la terminal:
 
 ```bash
-claude plugin marketplace add kennedy122112/bizagi-skill
-claude plugin install bizagi@bizagi-skill
+claude plugin marketplace add kennedy122112/bizagi-steroids
+claude plugin install bizagi@bizagi-steroids
 ```
 
 **Codex:**
 
 ```bash
-codex plugin marketplace add kennedy122112/bizagi-skill
-codex plugin add bizagi@bizagi-skill
+codex plugin marketplace add kennedy122112/bizagi-steroids
+codex plugin add bizagi@bizagi-steroids
 ```
 
 Como plugin, el agente lo actualiza desde su propio marketplace (`/plugin marketplace update` o `codex plugin marketplace upgrade`). Usa **un solo método por agente**, para no tener el skill dos veces.
@@ -158,16 +160,16 @@ Como plugin, el agente lo actualiza desde su propio marketplace (`/plugin market
 **Windows (PowerShell):**
 
 ```powershell
-irm https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/kennedy122112/bizagi-steroids/main/install.ps1 | iex
 ```
 
 **macOS / Linux / Git Bash:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kennedy122112/bizagi-skill/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kennedy122112/bizagi-steroids/main/install.sh | bash
 ```
 
-Dejan el mismo resultado que `npx … setup`, con un clon de git en `~/.bizagi-skill`.
+Dejan el mismo resultado que `npx … setup`, con un clon de git en `~/.bizagi-steroids`.
 
 Si tu agente no soporta skills, añade al `AGENTS.md` de tu proyecto:
 > *"Para modelar procesos de Bizagi, sigue las instrucciones de `~/.agents/skills/bizagi/SKILL.md`."*

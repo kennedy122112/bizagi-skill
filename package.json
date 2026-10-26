@@ -1,12 +1,12 @@
 {
-  "name": "bizagi-skill",
-  "version": "0.6.0",
+  "name": "bizagi-steroids",
+  "version": "0.6.1",
   "private": true,
   "description": "Modela procesos para Bizagi Modeler desde lenguaje natural: skill + CLI local que genera BPMN 2.0, vista previa y Word (sin MCP), para Claude Code, Codex, OpenCode, Gemini y Cursor.",
   "type": "module",
   "license": "MIT",
   "bin": {
-    "bizagi-skill": "bin/bizagi-skill.mjs"
+    "bizagi-steroids": "bin/bizagi-steroids.mjs"
   },
   "files": [
     "bin",
@@ -15,5 +15,5 @@
   "engines": {
     "node": ">=18.17"
   },
-  "repository": "github:kennedy122112/bizagi-skill"
+  "repository": "github:kennedy122112/bizagi-steroids"
 }
