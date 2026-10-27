@@ -42,6 +42,7 @@ Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta d
    - No uses rutas inventadas ni la carpeta de este skill.
 3. **Ejecutar `build spec.json`.** Valida y, si no hay errores, crea el `.bpmn`, la vista previa y el Word, e imprime sus rutas absolutas.
    - Si reporta errores, corrige la spec y repite.
+   - **Resuelve siempre los avisos "no tiene flujo de entrada/salida".** Casi siempre es un flujo olvidado, o un participante que espera al otro. En ese caso conecta sus pasos con un `messageCatch` ("Recibo entregado") en vez de dejarlos sueltos.
    - **Mira la vista previa** (`.png`) antes de entregar.
    - Al terminar, comunica exactamente las rutas que imprimió `build`.
 4. **Revisar el diagrama.** Para iterar sin regenerar todo, usa `validate` y `preview spec.json -o vista.png`.
