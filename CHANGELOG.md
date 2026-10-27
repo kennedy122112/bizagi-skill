@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.2 — 2026-10-27
+
+Corrección a raíz de una prueba con OpenCode. El agente describió los pasos como texto, sin ejecutarlos, y luego dio la ruta de una carpeta que nunca se creó.
+
+- Nuevo comando **`build spec.json [-d carpeta]`**: valida y crea el `.bpmn`, la vista previa y el Word en un solo paso, e imprime solo las rutas de archivos que existen.
+- SKILL: el agente debe ejecutar los comandos él mismo, guardar el trabajo en una subcarpeta del directorio actual y comunicar únicamente las rutas que imprime `build`.
+- **PNG en Windows:** `msedge.exe` termina antes de escribir la imagen, así que a veces la vista previa y el PNG de respaldo del Word no se generaban. Ahora se espera a que el archivo esté completo.
+
 ## 0.6.1 — 2026-10-26
 
 - El proyecto ahora se llama **bizagi-steroids**, antes bizagi-skill, como su proyecto hermano figma-steroids. GitHub redirige las URLs anteriores.

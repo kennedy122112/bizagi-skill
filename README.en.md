@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.6.1-0a7bbb?style=for-the-badge">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.6.2-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agents" src="https://img.shields.io/badge/agents-5-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -86,6 +86,7 @@ Missing values appear as "Por completar". If the template already has `{{nombre}
 
 | Command | Purpose |
 |---|---|
+| `build spec.json [-d folder]` | **All in one:** BPMN, preview and Word, and prints the created paths |
 | `generate spec.json -o process.bpmn --svg preview.svg` | spec → BPMN that Bizagi can import, plus a preview |
 | `read model.bpmn -o spec.json` | BPMN exported from Bizagi → editable spec |
 | `validate spec.json\|model.bpmn` | Modeling rules: start and end events, unlabeled gateway outputs, unreachable nodes… |

@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.6.1-0a7bbb?style=for-the-badge">
+  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-0.6.2-0a7bbb?style=for-the-badge">
   <img alt="Skills" src="https://img.shields.io/badge/skills-1-5fa500?style=for-the-badge">
   <img alt="Agentes" src="https://img.shields.io/badge/agentes-5-8a0f8a?style=for-the-badge">
   <img alt="BPMN" src="https://img.shields.io/badge/BPMN-2.0-e8601c?style=for-the-badge">
@@ -86,6 +86,7 @@ En [`skills/bizagi/plantillas/plantilla-ejemplo.docx`](skills/bizagi/plantillas/
 
 | Comando | Para qué |
 |---|---|
+| `build spec.json [-d carpeta]` | **Todo en uno:** BPMN, vista previa y Word, e imprime las rutas creadas |
 | `generate spec.json -o proceso.bpmn --svg vista.svg` | spec → BPMN importable en Bizagi, con vista previa |
 | `read modelo.bpmn -o spec.json` | BPMN exportado de Bizagi → spec editable |
 | `validate spec.json\|modelo.bpmn` | Reglas de modelado: inicios y fines, compuertas sin etiquetas, nodos inalcanzables… |

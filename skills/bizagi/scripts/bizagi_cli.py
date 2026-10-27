@@ -22,7 +22,7 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict, deque
 from pathlib import Path
 
-VERSION = "0.6.1"
+VERSION = "0.6.2"
 
 NS = {
     "bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL",
@@ -1707,7 +1707,17 @@ def svg_to_png(svg_text, size):
                            capture_output=True, timeout=60)
         except (OSError, subprocess.SubprocessError):
             return None
-        return png_p.read_bytes() if png_p.exists() else None
+        # en Windows msedge.exe sale enseguida y otro proceso escribe la imagen segundos después:
+        # se espera a que el archivo exista y deje de crecer
+        import time
+        last = -1
+        for _ in range(60):
+            size_now = png_p.stat().st_size if png_p.exists() else 0
+            if size_now and size_now == last:
+                return png_p.read_bytes()
+            last = size_now
+            time.sleep(0.5)
+        return png_p.read_bytes() if png_p.exists() and png_p.stat().st_size else None
 
 
 def crop_svg(svg, x0, w, h, y0=0):
@@ -2175,6 +2185,11 @@ def main(argv=None):
     dx.add_argument("-o", "--out", required=True)
     dx.add_argument("--no-png", action="store_true", help="no rasterizar el diagrama (solo SVG)")
     dx.add_argument("--template", help="documento .docx/.dotx propio para usar como plantilla")
+    bd = sp.add_parser("build", help="todo en uno: BPMN, vista previa y Word en una carpeta")
+    bd.add_argument("spec")
+    bd.add_argument("-d", "--dir", help="carpeta de salida (por defecto, la de la spec)")
+    bd.add_argument("--template", help="documento .docx/.dotx propio para usar como plantilla")
+    bd.add_argument("--no-docx", action="store_true")
     a = ap.parse_args(argv)
     try:
         if a.cmd == "read":
@@ -2219,9 +2234,31 @@ def main(argv=None):
             else:
                 Path(a.out).write_text(svg, encoding="utf-8")
             print(f"vista previa en {a.out}")
-        if a.cmd in ("generate", "preview") and geo["issues"]:
-            print(f"AVISO diagrama: {geo['issues']} línea(s) no pudieron evitar cruzar un elemento; "
-                  "revise la vista previa (reordenar carriles o nodos suele resolverlo)")
+        elif a.cmd == "build":
+            # un solo paso para el agente; solo se informan rutas de archivos que existen de verdad
+            out_dir = Path(a.dir or Path(a.spec).resolve().parent).resolve()
+            out_dir.mkdir(parents=True, exist_ok=True)
+            base = out_dir / (ncname(spec["name"]).strip("_").lower().replace("_", "-") or "proceso")
+            Path(f"{base}.bpmn").write_text('<?xml version="1.0" encoding="UTF-8"?>\n' + spec_to_bpmn(spec, geo),
+                                            encoding="utf-8")
+            svg = render_svg(spec, geo)
+            png = svg_to_png(svg, geo["size"])
+            preview = Path(f"{base}.png") if png else Path(f"{base}.svg")
+            preview.write_bytes(png) if png else preview.write_text(svg, encoding="utf-8")
+            made = [Path(f"{base}.bpmn"), preview]
+            if not a.no_docx:
+                render_docx(spec, geo, f"{base}.docx", template=a.template)
+                made.append(Path(f"{base}.docx"))
+            missing = [p for p in made if not p.is_file()]
+            if missing:
+                print("ERROR: no se pudieron crear: " + ", ".join(str(p) for p in missing), file=sys.stderr)
+                return 2
+            print(f"Archivos creados en {out_dir}:")
+            for p in made:
+                print(f"  {p}")
+            print("Para importar en Bizagi Modeler: Exportar/Importar → Importar → BPMN")
+            if warnings:
+                report([], warnings)
         elif a.cmd == "docx":
             has_png = render_docx(spec, geo, a.out, png=not a.no_png, template=a.template)
             print(f"documento Word en {a.out}"
@@ -2233,6 +2270,9 @@ def main(argv=None):
                 print(f"documentación en {a.out}")
             else:
                 print(md)
+        if a.cmd in ("generate", "preview", "build") and geo["issues"]:
+            print(f"AVISO diagrama: {geo['issues']} línea(s) no pudieron evitar cruzar un elemento; "
+                  "revise la vista previa (reordenar carriles o nodos suele resolverlo)")
         return 0
     except (SpecError, ET.ParseError, FileNotFoundError, json.JSONDecodeError) as e:
         print(f"ERROR: {e}", file=sys.stderr)

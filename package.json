@@ -1,6 +1,6 @@
 {
   "name": "bizagi-steroids",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "private": true,
   "description": "Modela procesos para Bizagi Modeler desde lenguaje natural: skill + CLI local que genera BPMN 2.0, vista previa y Word (sin MCP), para Claude Code, Codex, OpenCode, Gemini y Cursor.",
   "type": "module",

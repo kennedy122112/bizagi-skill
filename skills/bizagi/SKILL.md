@@ -7,8 +7,11 @@ description: Modela procesos para Bizagi Modeler a partir de lenguaje natural, 1
 
 Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta de este skill (normalmente `~/.agents/skills/bizagi/scripts/bizagi_cli.py`). Solo usa la biblioteca estándar de Python 3.9 o superior.
 
+> **Ejecuta tú los comandos** con tu herramienta de terminal. No los escribas en la respuesta para que el usuario los copie, ni digas que creaste un archivo sin haber ejecutado el comando. Solo da al usuario las rutas que imprime la herramienta, porque esas existen de verdad.
+
 | Comando | Para qué |
 |---|---|
+| `build spec.json [-d carpeta] [--template plantilla.docx]` | **Todo en uno (recomendado):** valida y crea el `.bpmn`, la vista previa y el Word en la carpeta de la spec, o en `-d`; luego imprime las rutas absolutas de lo que creó |
 | `generate spec.json -o proceso.bpmn --svg proceso.svg` | Genera el BPMN que se importa en Bizagi y una vista previa |
 | `read modelo.bpmn -o spec.json` | Convierte un BPMN exportado de Bizagi en una spec editable |
 | `validate spec.json\|modelo.bpmn` | Revisa las reglas de modelado (errores y avisos) |
@@ -34,15 +37,20 @@ Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta d
 
    Si el texto nombra un documento ("rendición", "factura"), inclúyelo como `dataObject`.
    No inventes `meta`: lo que falte saldrá como "Por completar" en la ficha del Word.
-2. **Escribir la spec JSON** (formato abajo) junto a los demás archivos del usuario.
-3. **Ejecutar `validate`** y corregir todos los errores. Los avisos conviene resolverlos.
-4. **Ejecutar `generate spec.json -o proceso.bpmn`** (el archivo para Bizagi). Luego `preview spec.json -o vista.png` y **mira la imagen**.
+2. **Escribir la spec JSON** (formato abajo) con tu herramienta para crear archivos.
+   - Va en la carpeta de trabajo actual, dentro de una subcarpeta con el nombre del proceso (p. ej. `compra-tienda-fisica/spec.json`), salvo que el usuario indique otra.
+   - No uses rutas inventadas ni la carpeta de este skill.
+3. **Ejecutar `build spec.json`.** Valida y, si no hay errores, crea el `.bpmn`, la vista previa y el Word, e imprime sus rutas absolutas.
+   - Si reporta errores, corrige la spec y repite.
+   - **Mira la vista previa** (`.png`) antes de entregar.
+   - Al terminar, comunica exactamente las rutas que imprimió `build`.
+4. **Revisar el diagrama.** Para iterar sin regenerar todo, usa `validate` y `preview spec.json -o vista.png`.
    - Si aparece `AVISO diagrama`, alguna línea cruza un elemento.
    - **Lo que controla el layout:**
      - El orden de los carriles: ponlos en el orden en que intervienen.
      - El orden de los `flows`: de cada compuerta, la primera salida listada sigue recta y las demás se abren hacia abajo, así que escribe primero el camino principal.
 5. **Entregar el `.bpmn`.** El usuario lo abre en Bizagi Modeler con **Exportar/Importar → Importar → BPMN**, que crea una pestaña de diagrama nueva. Si el usuario lo pide y computer-use está disponible, puedes importarlo tú.
-6. **Si piden documentación o un entregable**, ejecuta `docx`.
+6. **Documentación o entregable:** `build` ya genera el Word. Usa `docx` solo para regenerarlo, por ejemplo con otra plantilla.
    - El diagrama se incrusta en SVG, con un PNG de respaldo si hay Chrome o Edge instalado.
    - Un diagrama grande va en hojas A3: una vista general y páginas de detalle legibles al imprimir.
    - La ficha se completa con `meta` en la spec: `codigo`, `version`, `responsable`, `area`, `elaborado`, `revisado`, `aprobado`, `fecha`.

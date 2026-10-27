@@ -42,6 +42,8 @@ jobs:
             python -c "import zipfile,re,xml.dom.minidom as m;z=zipfile.ZipFile('/tmp/tpl.docx');[m.parseString(z.read(n)) for n in z.namelist() if n.endswith(('.xml','.rels'))];d=z.read('word/document.xml').decode();assert not re.findall(r'\{\{[^}]*\}\}',d),'marcadores sin rellenar';print('plantilla ok')"
             python -c "import zipfile,xml.dom.minidom as m;z=zipfile.ZipFile('/tmp/out.docx');[m.parseString(z.read(n)) for n in z.namelist() if n.endswith(('.xml','.rels'))];print('docx ok')"
           done
+          python skills/bizagi/scripts/bizagi_cli.py build examples/solicitud-compra.json -d /tmp/build
+          test -f /tmp/build/solicitud-de-compra.bpmn && test -f /tmp/build/solicitud-de-compra.docx
           for bpmn in examples/*.bpmn; do
             python skills/bizagi/scripts/bizagi_cli.py validate "$bpmn"
           done
