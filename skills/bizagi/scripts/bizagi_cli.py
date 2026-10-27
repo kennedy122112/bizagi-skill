@@ -2256,7 +2256,8 @@ def main(argv=None):
             print(f"Archivos creados en {out_dir}:")
             for p in made:
                 print(f"  {p}")
-            print("Para importar en Bizagi Modeler: Exportar/Importar → Importar → BPMN")
+            print("Para abrirlo en Bizagi Modeler: pestaña Exportar/Importar → Importar → BPMN.")
+            print("(Archivo → Abrir no sirve: solo abre modelos nativos .bpm)")
             if warnings:
                 report([], warnings)
         elif a.cmd == "docx":

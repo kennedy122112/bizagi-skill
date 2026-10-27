@@ -179,7 +179,7 @@ Si tu agente no soporta skills, añade al `AGENTS.md` de tu proyecto:
 
 1. **Describe** el proceso en lenguaje natural.
 2. El agente **genera** `proceso.bpmn` y una vista previa.
-3. En Bizagi: **Exportar/Importar → Importar → BPMN**.
+3. En Bizagi: **Exportar/Importar → Importar → BPMN**. *Archivo → Abrir* no sirve: solo abre archivos nativos `.bpm`.
 4. **Para modificar un modelo existente**, en Bizagi usa **Exportar → BPMN**, pásale el archivo al agente con los cambios que quieres y vuelve a importarlo.
 
 También puedes usar la herramienta sin agente:

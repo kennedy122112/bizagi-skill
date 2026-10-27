@@ -50,7 +50,7 @@ Herramienta: `python scripts/bizagi_cli.py`, con la ruta relativa a la carpeta d
    - **Lo que controla el layout:**
      - El orden de los carriles: ponlos en el orden en que intervienen.
      - El orden de los `flows`: de cada compuerta, la primera salida listada sigue recta y las demás se abren hacia abajo, así que escribe primero el camino principal.
-5. **Entregar el `.bpmn`.** El usuario lo abre en Bizagi Modeler con **Exportar/Importar → Importar → BPMN**, que crea una pestaña de diagrama nueva. Si el usuario lo pide y computer-use está disponible, puedes importarlo tú.
+5. **Entregar el `.bpmn`.** El usuario lo abre en Bizagi Modeler con **Exportar/Importar → Importar → BPMN**, que crea una pestaña de diagrama nueva. Díselo siempre así, y aclara que **Archivo → Abrir no sirve**, porque solo abre archivos nativos `.bpm`. Si el usuario lo pide y computer-use está disponible, puedes importarlo tú.
 6. **Documentación o entregable:** `build` ya genera el Word. Usa `docx` solo para regenerarlo, por ejemplo con otra plantilla.
    - El diagrama se incrusta en SVG, con un PNG de respaldo si hay Chrome o Edge instalado.
    - Un diagrama grande va en hojas A3: una vista general y páginas de detalle legibles al imprimir.
