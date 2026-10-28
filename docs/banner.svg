@@ -23,7 +23,7 @@
 
   <text x="70" y="150" font-size="70" font-weight="800" fill="#ffffff" letter-spacing="-1">bizagi-steroids</text>
   <text x="72" y="202" font-size="28" fill="#fde2cf">Del lenguaje natural a tu Bizagi Modeler.</text>
-  <text x="72" y="244" font-size="20" fill="#fdba74">Claude Code · Codex · OpenCode · sin API · sin MCP · 100 % local</text>
+  <text x="72" y="244" font-size="20" fill="#fdba74">Claude Code · Codex · OpenCode · Gemini · Cursor · sin programar</text>
 
   <g font-size="15" font-family="Consolas, 'Courier New', monospace" fill="#f5f5f5">
     <rect x="72" y="282" width="112" height="34" rx="17" fill="#ffffff" fill-opacity="0.1" stroke="#ffffff" stroke-opacity="0.18"/>

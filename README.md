@@ -25,221 +25,279 @@
 </p>
 
 <p align="center">
-  <b>Describe tu proceso en lenguaje natural. Tu agente de IA lo modela, lo documenta en Word y lo deja listo para importarlo en Bizagi.</b><br>
-  Local, sin API, sin MCP y sin dependencias.
+  <b>Describe tu proceso como lo hablas. Tu agente de IA lo modela, lo documenta en Word y lo deja listo para importarlo en Bizagi.</b><br>
+  Gratis y de código abierto. Sin programar.
 </p>
 
-<p align="center"><sub>Proyecto independiente y de código abierto, no afiliado a Bizagi. Bizagi y Bizagi Modeler son marcas de sus respectivos titulares.</sub></p>
+<p align="center"><sub>Proyecto independiente, no afiliado a Bizagi. Bizagi y Bizagi Modeler son marcas de sus respectivos titulares.</sub></p>
 
 ---
 
-## ⚡ Inicio rápido
+## ✨ Qué es
 
-**1. Instala** el skill en todos tus agentes con un solo comando. Necesitas **Node.js 18+** y **Python 3.9+**.
+**bizagi-steroids** es un *skill*: un paquete de instrucciones y herramientas que le enseña a tu asistente de IA a modelar procesos para **Bizagi Modeler**. Le cuentas el proceso con tus palabras, igual que en una reunión, y te entrega:
 
-```bash
-npx -y github:kennedy122112/bizagi-steroids setup
-```
-
-**2. Pídele** el proceso a tu agente (Claude Code, Codex, OpenCode, Gemini o Cursor) como se lo contarías a un colega:
-
-> *Modela en Bizagi el proceso de compra de autopartes: almacén registra la solicitud, gerencia la aprueba o la rechaza, compras pide cotizaciones, elige proveedor y emite la orden; al llegar, almacén verifica y, si algo no está conforme, se coordina con el proveedor.*
-
-El agente escribe la especificación, la valida y crea en una carpeta el **`.bpmn`**, una **vista previa** y el **Word**.
-
-**3. Ábrelo en Bizagi** desde la pestaña **Exportar/Importar → Importar → BPMN**. *Archivo → Abrir* no sirve para esto: solo abre archivos nativos `.bpm`. Después puedes guardarlo como `.bpm` con *Archivo → Guardar*.
-
-## ✨ Qué hace
-
-Entiende procesos contados como habla la gente: con muletillas, correcciones ("no, perdón, primero…"), abreviaturas o una sola línea. Los convierte en un **BPMN 2.0 con diagrama** que Bizagi importa sin retoques:
+- 📐 El **diagrama BPMN 2.0** (`.bpmn`), listo para importar en Bizagi.
+- 📄 El **documento en Word**: roles, actividades, decisiones, plazos y supuestos por validar. Puede ir con la plantilla de tu organización.
+- 🖼️ Una **vista previa** del diagrama, para revisarlo sin abrir Bizagi.
 
 <p align="center">
   <img alt="Proceso importado en Bizagi Modeler" src="docs/importado-en-bizagi.jpg" width="100%">
 </p>
 
-También modela plazos, excepciones, documentos y sistemas. Por ejemplo, una atención de reclamos con temporizadores adjuntos, un error de envío, un libro de reclamaciones y la nota del plazo legal:
+## 🧭 Cómo funciona
 
-<p align="center">
-  <img alt="Atención de reclamos importada en Bizagi Modeler" src="docs/bizagi-reclamos.jpg" width="100%">
-</p>
+```mermaid
+flowchart LR
+    A["🗣️ Tú describes el proceso<br/>en el chat"] --> B["🤖 Tu agente de IA<br/>lo interpreta"]
+    B --> C["⚙️ bizagi-steroids<br/>genera los archivos en tu PC"]
+    C --> D["📐 .bpmn"]
+    C --> E["📄 Word"]
+    D --> F["Bizagi Modeler<br/>Importar → BPMN"]
+```
 
-**Soporta:**
-- Pools y carriles, incluidos pools externos (caja negra), y flujos de mensaje.
-- Eventos: inicio, fin, temporizador, mensaje, señal, error y terminación.
-- Eventos adjuntos al borde de una tarea (temporizador, mensaje, señal, condición o error), interrumpibles o no.
-- Todos los tipos de tarea, y subprocesos.
-- Objetos de datos, almacenes de datos y anotaciones, con asociaciones de entrada y salida.
-- Compuertas exclusiva, paralela, inclusiva, basada en eventos y compleja, con condiciones y flujos por defecto.
-- Retrabajos (ciclos).
+Tu **agente de IA** (Claude Code, Codex, OpenCode, Gemini o Cursor) entiende lo que dices. **bizagi-steroids** se ejecuta en tu computadora y genera el diagrama y el documento. No tienes que escribir código ni dibujar nada.
 
-Las posiciones del diagrama se calculan automáticamente: las líneas evitan atravesar elementos y las etiquetas buscan un lugar libre.
+## 🧰 Qué necesitas
+
+| Necesitas | Para qué | ¿Lo tengo? |
+|---|---|---|
+| **Bizagi Modeler** | Abrir el diagrama. Probado con la versión 4.1. | Ya lo usas |
+| **Un agente de IA** | Entender tu descripción | Ver el [paso 3](#3-elige-tu-agente-de-ia) |
+| **Node.js 18 o superior** | Instalar el skill con un comando | `node --version` |
+| **Python 3.9 o superior** | Generar los archivos | `python --version` |
+| **Chrome o Edge** (opcional) | La vista previa en imagen `.png` | Normalmente ya lo tienes |
+
+## 🚀 Instalación paso a paso
+
+### 1. Instala Node.js
+
+Descárgalo de **[nodejs.org](https://nodejs.org)**: elige la versión **LTS** e instálalo con las opciones por defecto.
+
+### 2. Instala Python
+
+Descárgalo de **[python.org/downloads](https://www.python.org/downloads/)**.
+
+> ⚠️ **En Windows**, en la primera pantalla del instalador marca **"Add python.exe to PATH"** antes de pulsar *Install Now*. Si no lo marcas, el skill no encontrará Python.
+
+### 3. Elige tu agente de IA
+
+Si ya usas uno de estos, sáltate este paso:
+
+| Agente | Dónde conseguirlo |
+|---|---|
+| **Claude Code** | [claude.com/claude-code](https://claude.com/claude-code) |
+| **Codex** | [github.com/openai/codex](https://github.com/openai/codex) |
+| **OpenCode** | [opencode.ai](https://opencode.ai) |
+| **Gemini CLI** | [github.com/google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli) |
+| **Cursor** | [cursor.com](https://cursor.com) |
+
+Algunos tienen uso gratuito (por ejemplo, Gemini CLI con una cuenta de Google, u OpenCode con sus modelos gratuitos) y otros requieren una suscripción. Revisa los planes vigentes de cada uno. Con los modelos más simples, el agente a veces describe los pasos en vez de hacerlos: si te pasa, elige un modelo más capaz.
+
+### 4. Abre una terminal
+
+- **Windows:** abre el menú Inicio, escribe **PowerShell** y ábrelo.
+- **Mac:** abre **Terminal** (Aplicaciones → Utilidades).
+
+Comprueba que todo está instalado. Cada comando debe responder con un número de versión:
+
+```bash
+node --version
+python --version
+```
+
+En Mac, si `python` no responde, prueba con `python3 --version`.
+
+### 5. Instala bizagi-steroids
+
+Copia este comando en la terminal y pulsa Enter:
+
+```bash
+npx -y github:kennedy122112/bizagi-steroids setup
+```
+
+Al terminar verás **"bizagi instalado (bizagi-cli …)"** y la lista de agentes donde quedó disponible. Un solo comando sirve para todos tus agentes a la vez.
+
+### 6. Pide tu primer proceso
+
+Abre tu agente de IA **en una carpeta de trabajo** (por ejemplo, `Documentos\procesos`) y escríbele:
+
+> *Modela en Bizagi el proceso de compra de autopartes: almacén registra la solicitud, gerencia la aprueba o la rechaza, compras pide cotizaciones, elige proveedor y emite la orden; al llegar, almacén verifica y, si algo no está conforme, se coordina con el proveedor.*
+
+El agente crea una subcarpeta con el nombre del proceso, con el `.bpmn`, la vista previa y el Word, y te da las rutas.
+
+### 7. Ábrelo en Bizagi
+
+En Bizagi Modeler, ve a la pestaña **Exportar/Importar → Importar → BPMN** y elige el `.bpmn`.
+
+> ⚠️ No uses *Archivo → Abrir*: esa opción solo abre archivos nativos `.bpm` y mostrará *"The file is invalid or corrupt"*. Una vez importado, puedes guardarlo como `.bpm` con *Archivo → Guardar*.
+
+**Para actualizar** más adelante, repite el paso 5 y abre una sesión nueva en tu agente.
 
 ## 💬 Ejemplos de pedidos
 
 | Lo que dices | Lo que obtienes |
 |---|---|
-| *"necesito el proceso de reembolso de gastos de viaje, el empleado presenta su rendición y finanzas revisa y paga"* | Un proceso mínimo con revisión, corrección y pago, más una lista de **supuestos y preguntas por validar** en el Word |
+| *"necesito el proceso de reembolso de gastos de viaje, el empleado presenta su rendición y finanzas revisa y paga"* | Un proceso mínimo con revisión, corrección y pago, y una lista de **supuestos y preguntas por validar** en el Word |
 | *"bueno mira, el trabajador pide sus vacaciones en el sistema, si el jefe no responde en tres días se da por aprobado…"* | Un temporizador adjunto, notificaciones automáticas y un paralelismo |
 | *"modela la atención de incidencias de TI: N1 tiene 30 min, si no resuelve escala a N2…"* | Escalamiento por tiempo, regreso a N2 y cierre automático |
 | *"documenta este .bpmn que exporté de Bizagi"* | El Word del proceso a partir de tu modelo |
-| *"genera el Word con mi plantilla institucional"* | El documento con tu carátula, logo y firmas ([ver más abajo](#-plantilla-propia)) |
+| *"cámbiale al proceso que la aprobación la haga el gerente de área"* | El modelo corregido, listo para volver a importar |
 
-## 📄 Documento Word
+No hace falta un formato especial. Entiende muletillas, correcciones ("no, perdón, primero…"), abreviaturas y pedidos de una sola línea. Si falta algo importante, el agente pregunta; si le pides avanzar, completa con lo mínimo típico y lo anota como supuesto.
 
-Cada proceso viene con su entregable listo para revisar o firmar:
+Con plazos, excepciones, documentos y sistemas, el resultado se ve así:
+
+<p align="center">
+  <img alt="Atención de reclamos importada en Bizagi Modeler" src="docs/bizagi-reclamos.jpg" width="100%">
+</p>
+
+## 📄 El documento Word
+
+Cada proceso trae su entregable, listo para revisar o firmar:
 - una ficha con código, versión y responsables;
 - el objetivo y los roles con sus actividades;
-- el **diagrama en una página horizontal**, vectorial y con imagen de respaldo (en A3 con páginas de detalle si es grande);
+- el **diagrama en una página horizontal** (en A3 con páginas de detalle si es grande);
 - la tabla de actividades con entradas, salidas y sistemas, y el flujo paso a paso;
 - las reglas de decisión, las excepciones y plazos, los documentos y las interacciones con externos;
 - los supuestos y puntos por validar.
 
 Ejemplos: [atencion-reclamos.docx](docs/atencion-reclamos.docx) · [solicitud-compra.docx](docs/solicitud-compra.docx)
 
-## 🎨 Plantilla propia
+### Con la plantilla de tu organización
 
-Usa el Word de tu organización (o cualquier `.docx` o `.dotx`) como plantilla. Pídeselo a tu agente o ejecuta:
+Pídele al agente *"genera el Word con mi plantilla `plantilla.docx`"*. De tu plantilla se conserva todo: logo, carátula, encabezados y pies, control de versiones, firmas y estilos.
 
-```bash
-python skills/bizagi/scripts/bizagi_cli.py docx proceso.json -o entregable.docx --template mi-plantilla.docx
-```
-
-De tu plantilla se conserva todo: logo, encabezados y pies, carátula, control de versiones, firmas, márgenes y estilos. El contenido del proceso usa tus estilos de título, aunque el Word esté en otro idioma, y las tablas toman el color de tus títulos.
-
-Escribe estos **marcadores** donde quieras en la plantilla, también en encabezados y pies:
+Opcionalmente, puedes escribir estos **marcadores** en tu plantilla:
 
 | Marcador | Se reemplaza por |
 |---|---|
-| `{{CONTENIDO}}` | Todo el contenido del proceso: objetivo, roles, diagrama, actividades, flujo… Sin este marcador, el contenido se agrega al final. |
+| `{{CONTENIDO}}` | Todo el contenido del proceso. Sin este marcador, se agrega al final. |
 | `{{nombre}}` | Nombre del proceso |
-| `{{codigo}}` `{{version}}` `{{fecha}}` | Datos de `meta` en la spec. La fecha, si falta, es la de hoy. |
-| `{{responsable}}` `{{area}}` | Datos de `meta` |
-| `{{elaborado}}` `{{revisado}}` `{{aprobado}}` | Datos de `meta`, para el bloque de firmas |
-| `{{cualquier_clave}}` | Cualquier otra clave que pongas en `meta` |
+| `{{codigo}}` `{{version}}` `{{fecha}}` `{{responsable}}` `{{area}}` | Datos de la ficha |
+| `{{elaborado}}` `{{revisado}}` `{{aprobado}}` | Nombres para el bloque de firmas |
 
-Los datos que falten aparecen como "Por completar". Si la plantilla ya tiene `{{nombre}}`, no se repite el título del proceso; y si tiene marcadores de ficha, no se agrega la ficha propia.
+Lo que no le hayas dicho al agente aparece como "Por completar". Hay una plantilla de ejemplo en [`plantilla-ejemplo.docx`](skills/bizagi/plantillas/plantilla-ejemplo.docx) y su resultado en [atencion-reclamos-plantilla.docx](docs/atencion-reclamos-plantilla.docx).
 
-En [`skills/bizagi/plantillas/plantilla-ejemplo.docx`](skills/bizagi/plantillas/plantilla-ejemplo.docx) hay una plantilla neutra de punto de partida, con carátula, control de versiones, aprobaciones y encabezado y pie con marcadores. Resultado de ejemplo: [atencion-reclamos-plantilla.docx](docs/atencion-reclamos-plantilla.docx).
+## ❓ Preguntas frecuentes
 
-## 🚀 Instalación
+**¿Cuesta algo?**
+bizagi-steroids es gratuito y de código abierto (licencia MIT). Lo que puede tener costo es tu agente de IA, según el que elijas y su plan.
 
-Para usar el skill necesitas **Python 3.9 o superior**. No usa paquetes externos.
+**¿Mis datos salen de mi computadora?**
+Los archivos (`.bpmn`, Word y vista previa) se generan en tu PC, y bizagi-steroids no se conecta a ningún servicio. Pero tu agente de IA envía lo que escribes en el chat al proveedor de su modelo (Anthropic, OpenAI, Google, etc.), como cualquier asistente de IA. Si el proceso tiene información sensible, revisa las políticas de tu organización y de tu proveedor.
 
-### 1. Un solo comando (recomendado)
+**¿Necesito saber programar?**
+No. Solo necesitas copiar un comando para instalarlo; después todo se pide en lenguaje natural.
 
-```bash
-npx -y github:kennedy122112/bizagi-steroids setup
-```
+**¿Funciona con mi versión de Bizagi?**
+Se probó con Bizagi Modeler 4.1. Genera BPMN 2.0, el formato estándar que Bizagi importa, así que en otras versiones recientes debería funcionar igual.
 
-Solo necesita **Node.js 18 o superior**, sin git. Deja el skill disponible para **todos tus agentes** a la vez y sin duplicarlo:
+**¿Puedo modificar un proceso que ya tengo en Bizagi?**
+Sí. Expórtalo desde Bizagi (**Exportar/Importar → Exportar → BPMN**), pásale el archivo al agente con los cambios que quieres y vuelve a importar el resultado.
 
-| Agente | Cómo lo encuentra | Probado |
-|---|---|---|
-| Claude Code | Enlace en `~/.claude/skills/bizagi` | ✅ |
-| Codex | Lee `~/.agents/skills` | ✅ (CLI 0.164) |
-| OpenCode | Lee `~/.agents/skills` | ✅ |
-| Gemini CLI / Antigravity | Lee `~/.agents/skills` (alias de `~/.gemini/skills`) | Detecta el skill (CLI 0.40) |
-| Cursor | Lee `~/.agents/skills` | Sin probar |
+**¿En qué idioma funciona?**
+Puedes describir el proceso en español o en inglés. El Word y los textos del diagrama salen en el idioma de tu descripción, aunque los títulos de las secciones del Word están en español.
 
-La copia vive en `~/.bizagi-steroids` y los agentes la usan mediante enlaces.
-- **Actualizar:** vuelve a ejecutar el mismo comando y abre una sesión nueva en tu agente.
-- **Ver el estado:** `npx -y github:kennedy122112/bizagi-steroids status`.
-- **Desinstalar:** `npx -y github:kennedy122112/bizagi-steroids uninstall`.
+## 🩺 Solución de problemas
 
-Si ya tenías una instalación anterior, se mueve a la carpeta temporal en lugar de borrarse.
+| Síntoma | Qué hacer |
+|---|---|
+| Bizagi dice **"Error cargando Modelo: The file is invalid or corrupt"** | Lo abriste con *Archivo → Abrir*. Usa **Exportar/Importar → Importar → BPMN**. |
+| `npx` **no se reconoce** como comando | Falta Node.js ([paso 1](#1-instala-nodejs)). Después de instalarlo, cierra y vuelve a abrir la terminal. |
+| **"no se encontró Python"** | Instala Python marcando *"Add python.exe to PATH"* ([paso 2](#2-instala-python)) y repite el paso 5. |
+| El agente **muestra los comandos en vez de ejecutarlos**, o da una ruta que no existe | Abre una sesión nueva o elige un modelo más capaz en tu agente. |
+| El agente **no conoce el skill** | Ejecuta `npx -y github:kennedy122112/bizagi-steroids status` y abre una sesión nueva (en Gemini, `/skills reload`). |
+| **No hay vista previa `.png`**, solo `.svg` | Falta Chrome o Edge. El `.svg` se abre en cualquier navegador y el Word lleva el diagrama igual. |
+| Aparece `AVISO diagrama` | Alguna línea del diagrama cruza un elemento. Pídele al agente que reordene los carriles; en procesos muy grandes puede quedar algún cruce. |
 
-### 2. Como plugin de tu agente
+## ⚠️ Limitaciones
 
-**Claude Code:**
+- No lee el archivo nativo `.bpm` de Bizagi: hay que exportar el modelo a BPMN.
+- Los subprocesos se generan contraídos.
+- Un plazo que abarca varias actividades (por ejemplo, un SLA) se adjunta a una actividad y se explica en una nota.
+
+---
+
+## 🛠️ Para desarrolladores
+
+### Otras formas de instalar
+
+**Como plugin de Claude Code:**
 
 ```
 /plugin install bizagi --marketplace kennedy122112/bizagi-steroids
 ```
 
-En versiones anteriores a la 2.1.275, o desde la terminal:
+O desde la terminal: `claude plugin marketplace add kennedy122112/bizagi-steroids` y `claude plugin install bizagi@bizagi-steroids`.
 
-```bash
-claude plugin marketplace add kennedy122112/bizagi-steroids
-claude plugin install bizagi@bizagi-steroids
-```
+**Como plugin de Codex:** `codex plugin marketplace add kennedy122112/bizagi-steroids` y `codex plugin add bizagi@bizagi-steroids`.
 
-**Codex:**
-
-```bash
-codex plugin marketplace add kennedy122112/bizagi-steroids
-codex plugin add bizagi@bizagi-steroids
-```
-
-Como plugin, el agente lo actualiza desde su propio marketplace (`/plugin marketplace update` o `codex plugin marketplace upgrade`). Usa **un solo método por agente**, para no tener el skill dos veces.
-
-### 3. Sin Node: con git
-
-**Windows (PowerShell):**
+**Sin Node, con git:**
 
 ```powershell
 irm https://raw.githubusercontent.com/kennedy122112/bizagi-steroids/main/install.ps1 | iex
 ```
 
-**macOS / Linux / Git Bash:**
-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kennedy122112/bizagi-steroids/main/install.sh | bash
 ```
 
-Dejan el mismo resultado que `npx … setup`, con un clon de git en `~/.bizagi-steroids`.
+Usa **un solo método por agente**, para no cargar el skill dos veces.
 
-Si tu agente no soporta skills, añade al `AGENTS.md` de tu proyecto:
-> *"Para modelar procesos de Bizagi, sigue las instrucciones de `~/.agents/skills/bizagi/SKILL.md`."*
+### Dónde se instala
 
-## 🔁 Flujo de trabajo
+`npx … setup` y los scripts dejan una copia en `~/.bizagi-steroids` y la enlazan donde la busca cada agente:
 
-1. **Describe** el proceso. Si falta algo importante, el agente pregunta. Si le pides avanzar, completa con lo mínimo típico y lo deja anotado como supuesto.
-2. El agente escribe la spec y ejecuta **`build`**, que crea el `.bpmn`, la vista previa (`.png`) y el Word en una subcarpeta con el nombre del proceso. Al terminar te da las rutas de esos archivos.
-3. En Bizagi: **Exportar/Importar → Importar → BPMN**, y luego *Archivo → Guardar* si quieres un `.bpm`.
-4. **Para cambiar un modelo**, expórtalo desde Bizagi (**Exportar → BPMN**), pásale el archivo al agente con los cambios que quieres y vuelve a importarlo.
+| Agente | Ruta | Probado |
+|---|---|---|
+| Claude Code | `~/.claude/skills/bizagi` | ✅ |
+| Codex | `~/.agents/skills/bizagi` | ✅ (CLI 0.164) |
+| OpenCode | `~/.agents/skills/bizagi` | ✅ |
+| Gemini CLI / Antigravity | `~/.agents/skills/bizagi` (alias de `~/.gemini/skills`) | Detecta el skill (CLI 0.40) |
+| Cursor | `~/.agents/skills/bizagi` | Sin probar |
 
-## 🧰 Comandos
+Para ver el estado: `npx -y github:kennedy122112/bizagi-steroids status`. Para desinstalar: `npx -y github:kennedy122112/bizagi-steroids uninstall`. Las instalaciones previas se respaldan en la carpeta temporal, no se borran.
 
-También puedes usar la herramienta sin agente:
+Si tu agente no soporta skills, añade a tu `AGENTS.md`: *"Para modelar procesos de Bizagi, sigue las instrucciones de `~/.agents/skills/bizagi/SKILL.md`."*
+
+### Comandos
+
+La herramienta también se usa sin agente (`python skills/bizagi/scripts/bizagi_cli.py <comando>`):
 
 | Comando | Para qué |
 |---|---|
 | `build spec.json [-d carpeta] [--template plantilla.docx]` | **Todo en uno:** BPMN, vista previa y Word, e imprime las rutas creadas |
-| `generate spec.json -o proceso.bpmn --svg vista.svg` | spec → BPMN importable en Bizagi, con vista previa |
+| `generate spec.json -o proceso.bpmn --svg vista.svg` | spec → BPMN importable en Bizagi |
 | `read modelo.bpmn -o spec.json` | BPMN exportado de Bizagi → spec editable |
-| `validate spec.json\|modelo.bpmn` | Reglas de modelado: inicios y fines, compuertas sin etiquetas, nodos inalcanzables… |
-| `preview spec.json\|modelo.bpmn -o vista.png` | Diagrama para revisar sin abrir Bizagi (`.png` necesita Chrome o Edge; `.svg` siempre funciona) |
-| `doc spec.json\|modelo.bpmn -o doc.md` | Documentación en Markdown: roles, actividades y secuencia |
+| `validate spec.json\|modelo.bpmn` | Reglas de modelado (inicios y fines, compuertas sin etiquetas, nodos inalcanzables…) |
+| `preview spec.json\|modelo.bpmn -o vista.png` | Diagrama para revisar (`.png` necesita Chrome o Edge; `.svg` siempre funciona) |
+| `doc spec.json\|modelo.bpmn -o doc.md` | Documentación en Markdown |
 | `docx spec.json\|modelo.bpmn -o proceso.docx [--template plantilla.docx]` | Documento Word |
 
-```bash
-python skills/bizagi/scripts/bizagi_cli.py build examples/solicitud-compra.json -d salida
-```
+Solo usa la biblioteca estándar de Python 3.9+. El formato de la spec y las reglas de modelado están en [SKILL.md](skills/bizagi/SKILL.md).
 
-El formato de la spec y las reglas de modelado están en [SKILL.md](skills/bizagi/SKILL.md).
+**Elementos soportados:**
+- Pools y carriles, incluidos pools externos, y flujos de mensaje.
+- Eventos de inicio, fin, temporizador, mensaje, señal, error y terminación, y eventos adjuntos (interrumpibles o no).
+- Todos los tipos de tarea, y subprocesos.
+- Compuertas exclusiva, paralela, inclusiva, basada en eventos y compleja, con condiciones y flujos por defecto.
+- Objetos de datos, almacenes de datos y anotaciones.
 
-## 🩺 Solución de problemas
+### Pruebas
 
-| Síntoma | Causa y solución |
+- **Lenguaje natural real:** un audio transcrito, un correo con jerga, notas de reunión, un dictado con correcciones y un pedido de una línea, modelados por agentes independientes que solo tenían el texto y el `SKILL.md`. Están en [`tests/`](tests/).
+- **Bizagi Modeler 4.1:** los ejemplos y varios casos de prueba se verificaron importándolos en Bizagi: pools y carriles, compuertas exclusivas y paralelas, temporizadores y errores adjuntos, mensajes, documentos, almacenes y anotaciones.
+- **CI:** en cada push, con Python 3.9 y 3.13, se validan y regeneran todos los ejemplos y casos, y se prueba el instalador `npx`.
+
+### Estructura del repo
+
+| Ruta | Contenido |
 |---|---|
-| Bizagi dice **"Error cargando Modelo: The file is invalid or corrupt"** | Lo abriste con *Archivo → Abrir* o "Abrir con…". Esa vía es solo para `.bpm`. Usa **Exportar/Importar → Importar → BPMN**. |
-| El agente **muestra los comandos en vez de ejecutarlos**, o te da una ruta que no existe | Algunos modelos describen los pasos sin ejecutarlos. Abre una sesión nueva o prueba otro modelo; el skill exige ejecutar `build` y dar solo las rutas que imprime. |
-| El agente **no conoce el skill** | Ejecuta `npx -y github:kennedy122112/bizagi-steroids status` y abre una sesión nueva (en Gemini, `/skills reload`). |
-| **No hay vista previa `.png`**, solo `.svg` | El PNG necesita Chrome o Edge instalado. El `.svg` se abre en cualquier navegador y el Word lleva el diagrama igual. |
-| **"no se encontró Python"** | Instala Python 3.9 o superior y vuelve a ejecutar `setup`. |
-| `AVISO diagrama: … no pudieron evitar cruzar un elemento` | Pide al agente que reordene los carriles o la salida principal de las compuertas; en procesos muy grandes puede quedar algún cruce. |
-
-## 🧪 Pruebas
-
-- **Lenguaje natural real:** se probó con procesos descritos como los escribe o dicta la gente: un audio transcrito, un correo con jerga, notas de reunión con abreviaturas, un dictado con correcciones y un pedido de una sola línea. Cada caso lo modeló un agente independiente que solo tenía el texto y el `SKILL.md`. Los casos están en [`tests/`](tests/).
-- **Bizagi Modeler 4.1:** los ejemplos y varios casos de prueba se verificaron importándolos en Bizagi: pools y carriles, compuertas exclusivas y paralelas, temporizadores y errores adjuntos, mensajes, documentos, almacenes de datos y anotaciones.
-- **CI:** en cada push, con Python 3.9 y 3.13, se validan y regeneran todos los ejemplos y casos (BPMN, Markdown, Word con y sin plantilla), y se prueba el instalador `npx`.
-
-## ⚠️ Limitaciones
-
-- El `.bpm` nativo de Bizagi no se lee directamente: hay que exportarlo a BPMN.
-- Los subprocesos se generan contraídos.
-- No hay subprocesos de evento ni temporizadores que cubran un tramo de varias actividades: el plazo se adjunta a una actividad y se explica en una nota.
+| `skills/bizagi/` | El skill: `SKILL.md`, `scripts/bizagi_cli.py` y `plantillas/` |
+| `bin/` | Instalador `npx` |
+| `.claude-plugin/`, `.agents/plugins/`, `.cursor-plugin/` | Manifiestos de plugin |
+| `examples/`, `docs/`, `tests/` | Ejemplos, imágenes y documentos de muestra, y casos de prueba |
 
 ## 🔗 Proyecto hermano
 
