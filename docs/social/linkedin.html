@@ -6,26 +6,24 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { width: 1200px; height: 627px; overflow: hidden; font-family: "Segoe UI", Helvetica, Arial, sans-serif;
-         background: #1c1230; color: #fff; }
+         background: #12233A; color: #fff; }
   .card { position: relative; width: 1200px; height: 627px; overflow: hidden;
-          background: radial-gradient(900px 520px at 18% 18%, rgba(249,115,22,.30), transparent 60%),
-                      radial-gradient(700px 500px at 95% 110%, rgba(168,85,247,.28), transparent 60%),
-                      linear-gradient(135deg, #1c1230 0%, #2a1626 55%, #3a1a10 100%); }
+          background: #12233A; }
   .left { position: absolute; left: 64px; top: 56px; width: 520px; }
   .kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; letter-spacing: .4px;
-            color: #fdba74; background: rgba(249,115,22,.12); border: 1px solid rgba(253,186,116,.35);
+            color: #fdba74; background: rgba(249,115,22,.14); border: 1px solid rgba(249,115,22,.55);
             padding: 6px 14px; border-radius: 999px; }
   h1 { font-size: 66px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; margin: 22px 0 14px; }
   h1 span { color: #fb923c; }
-  .tag { font-size: 27px; line-height: 1.25; color: #fde2cf; font-weight: 600; }
-  .sub { margin-top: 14px; font-size: 18px; line-height: 1.45; color: #e7cfc4; }
+  .tag { font-size: 27px; line-height: 1.25; color: #E8EEF6; font-weight: 600; }
+  .sub { margin-top: 14px; font-size: 18px; line-height: 1.45; color: #B9C7D8; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
-  .chip { font-size: 14px; font-weight: 600; padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,.08);
-          border: 1px solid rgba(255,255,255,.18); color: #f5f5f5; }
-  .chip.hot { background: #f97316; border-color: #f97316; color: #1c1230; }
+  .chip { font-size: 14px; font-weight: 600; padding: 7px 13px; border-radius: 999px; background: #1B3150;
+          border: 1px solid #2C4A6E; color: #f5f5f5; }
+  .chip.hot { background: #f97316; border-color: #f97316; color: #12233A; }
   .agents { margin-top: 18px; font-size: 15px; color: #fdba74; }
   .cmd { position: absolute; left: 64px; bottom: 44px; font-family: Consolas, "Cascadia Mono", monospace; font-size: 15.5px;
-         background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; padding: 10px 14px;
+         background: #0B1726; border: 1px solid #24405F; border-radius: 10px; padding: 10px 14px;
          color: #86efac; }
   .cmd b { color: #9ca3af; font-weight: 400; }
   .right { position: absolute; right: 44px; top: 50px; width: 548px; }
@@ -42,10 +40,10 @@
   .shot .bar { display: flex; align-items: center; gap: 6px; padding: 2px 4px 8px; font-size: 12px; font-weight: 600; color: #6b7280; }
   .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
   .files { position: absolute; right: 30px; bottom: -20px; display: flex; gap: 8px; transform: rotate(1.2deg); }
-  .file { background: #0f0a1a; border: 1px solid rgba(255,255,255,.25); color: #fff; font-size: 13px; font-weight: 700;
+  .file { background: #0B1726; border: 1px solid rgba(255,255,255,.25); color: #fff; font-size: 13px; font-weight: 700;
           padding: 8px 12px; border-radius: 9px; box-shadow: 0 10px 24px rgba(0,0,0,.4); }
   .file i { font-style: normal; color: #fdba74; }
-  .gh { position: absolute; right: 44px; bottom: 26px; font-size: 14px; color: #e7cfc4; }
+  .gh { position: absolute; right: 44px; bottom: 26px; font-size: 14px; color: #B9C7D8; }
 </style>
 </head>
 <body>

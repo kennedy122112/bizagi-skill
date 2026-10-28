@@ -6,16 +6,14 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { width: 1080px; height: 1080px; overflow: hidden; font-family: "Segoe UI", Helvetica, Arial, sans-serif;
-         background: #1c1230; color: #fff; }
+         background: #12233A; color: #fff; }
   .card { position: relative; width: 1080px; height: 1080px; overflow: hidden; padding: 64px 70px;
-          background: radial-gradient(800px 600px at 15% 10%, rgba(249,115,22,.30), transparent 60%),
-                      radial-gradient(800px 600px at 100% 100%, rgba(168,85,247,.28), transparent 60%),
-                      linear-gradient(160deg, #1c1230 0%, #2a1626 55%, #3a1a10 100%); }
+          background: #12233A; }
   .kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 600; color: #fdba74;
-            background: rgba(249,115,22,.12); border: 1px solid rgba(253,186,116,.35); padding: 7px 16px; border-radius: 999px; }
+            background: rgba(249,115,22,.14); border: 1px solid rgba(249,115,22,.55); padding: 7px 16px; border-radius: 999px; }
   h1 { font-size: 88px; font-weight: 800; letter-spacing: -2px; line-height: 1; margin: 20px 0 16px; }
   h1 span { color: #fb923c; }
-  .tag { font-size: 36px; line-height: 1.22; color: #fde2cf; font-weight: 600; }
+  .tag { font-size: 36px; line-height: 1.22; color: #E8EEF6; font-weight: 600; }
   .bubble { margin-top: 30px; width: 760px; background: #fff; color: #1f2937; border-radius: 18px 18px 18px 4px;
             padding: 16px 20px; font-size: 19px; line-height: 1.4; box-shadow: 0 14px 40px rgba(0,0,0,.35); }
   .bubble .who { font-size: 13px; font-weight: 700; color: #c2410c; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .6px; }
@@ -27,17 +25,17 @@
   .bar { display: flex; align-items: center; gap: 6px; padding: 2px 4px 8px; font-size: 13px; font-weight: 600; color: #6b7280; }
   .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
   .files { position: absolute; right: 24px; bottom: -22px; display: flex; gap: 10px; transform: rotate(1deg); }
-  .file { background: #0f0a1a; border: 1px solid rgba(255,255,255,.25); color: #fff; font-size: 16px; font-weight: 700;
+  .file { background: #0B1726; border: 1px solid rgba(255,255,255,.25); color: #fff; font-size: 16px; font-weight: 700;
           padding: 9px 14px; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,.4); }
   .file i { font-style: normal; color: #fdba74; }
   .foot { position: absolute; left: 70px; right: 70px; bottom: 56px; }
   .chips { display: flex; flex-wrap: wrap; gap: 10px; }
-  .chip { font-size: 17px; font-weight: 600; padding: 8px 15px; border-radius: 999px; background: rgba(255,255,255,.08);
-          border: 1px solid rgba(255,255,255,.18); }
-  .chip.hot { background: #f97316; border-color: #f97316; color: #1c1230; }
+  .chip { font-size: 17px; font-weight: 600; padding: 8px 15px; border-radius: 999px; background: #1B3150;
+          border: 1px solid #2C4A6E; }
+  .chip.hot { background: #f97316; border-color: #f97316; color: #12233A; }
   .agents { margin-top: 16px; font-size: 18px; color: #fdba74; }
   .cmd { margin-top: 16px; display: inline-block; font-family: Consolas, "Cascadia Mono", monospace; font-size: 19px;
-         background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; padding: 10px 16px; color: #86efac; }
+         background: #0B1726; border: 1px solid #24405F; border-radius: 10px; padding: 10px 16px; color: #86efac; }
   .cmd b { color: #9ca3af; font-weight: 400; }
 </style>
 </head>
