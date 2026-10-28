@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>bizagi-steroids · LinkedIn</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1200px; height: 627px; overflow: hidden; font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+         background: #1c1230; color: #fff; }
+  .card { position: relative; width: 1200px; height: 627px; overflow: hidden;
+          background: radial-gradient(900px 520px at 18% 18%, rgba(249,115,22,.30), transparent 60%),
+                      radial-gradient(700px 500px at 95% 110%, rgba(168,85,247,.28), transparent 60%),
+                      linear-gradient(135deg, #1c1230 0%, #2a1626 55%, #3a1a10 100%); }
+  .left { position: absolute; left: 64px; top: 56px; width: 520px; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; letter-spacing: .4px;
+            color: #fdba74; background: rgba(249,115,22,.12); border: 1px solid rgba(253,186,116,.35);
+            padding: 6px 14px; border-radius: 999px; }
+  h1 { font-size: 66px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; margin: 22px 0 14px; }
+  h1 span { color: #fb923c; }
+  .tag { font-size: 27px; line-height: 1.25; color: #fde2cf; font-weight: 600; }
+  .sub { margin-top: 14px; font-size: 18px; line-height: 1.45; color: #e7cfc4; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .chip { font-size: 14px; font-weight: 600; padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,.08);
+          border: 1px solid rgba(255,255,255,.18); color: #f5f5f5; }
+  .chip.hot { background: #f97316; border-color: #f97316; color: #1c1230; }
+  .agents { margin-top: 18px; font-size: 15px; color: #fdba74; }
+  .cmd { position: absolute; left: 64px; bottom: 44px; font-family: Consolas, "Cascadia Mono", monospace; font-size: 15.5px;
+         background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; padding: 10px 14px;
+         color: #86efac; }
+  .cmd b { color: #9ca3af; font-weight: 400; }
+  .right { position: absolute; right: 44px; top: 50px; width: 548px; }
+  .bubble { position: relative; z-index: 2; width: 430px; margin-left: 6px; background: #fff; color: #1f2937;
+            border-radius: 16px 16px 16px 4px; padding: 14px 16px; font-size: 14.5px; line-height: 1.4;
+            box-shadow: 0 14px 40px rgba(0,0,0,.35); }
+  .bubble .who { font-size: 12px; font-weight: 700; color: #c2410c; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .6px; }
+  .arrow { position: relative; z-index: 2; margin: 10px 0 10px 210px; font-size: 13px; font-weight: 700; color: #fdba74;
+           display: flex; align-items: center; gap: 8px; }
+  .arrow::before { content: ""; width: 2px; height: 22px; background: #fdba74; display: inline-block; }
+  .shot { position: relative; background: #fff; border-radius: 14px; padding: 8px; box-shadow: 0 24px 60px rgba(0,0,0,.5);
+          transform: rotate(-1.2deg); }
+  .shot img { display: block; width: 100%; border-radius: 8px; }
+  .shot .bar { display: flex; align-items: center; gap: 6px; padding: 2px 4px 8px; font-size: 12px; font-weight: 600; color: #6b7280; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .files { position: absolute; right: 30px; bottom: -20px; display: flex; gap: 8px; transform: rotate(1.2deg); }
+  .file { background: #0f0a1a; border: 1px solid rgba(255,255,255,.25); color: #fff; font-size: 13px; font-weight: 700;
+          padding: 8px 12px; border-radius: 9px; box-shadow: 0 10px 24px rgba(0,0,0,.4); }
+  .file i { font-style: normal; color: #fdba74; }
+  .gh { position: absolute; right: 44px; bottom: 26px; font-size: 14px; color: #e7cfc4; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="left">
+    <div class="kicker">⚡ Open source · MIT</div>
+    <h1>bizagi-<span>steroids</span></h1>
+    <div class="tag">Describe tu proceso como lo hablas.<br>Tu IA lo deja listo en Bizagi.</div>
+    <div class="sub">Lenguaje natural → BPMN 2.0 con diagrama + documentación en Word con tu propia plantilla.</div>
+    <div class="chips">
+      <span class="chip hot">BPMN 2.0</span>
+      <span class="chip">Word con plantilla</span>
+      <span class="chip">100 % local</span>
+      <span class="chip">Sin API ni MCP</span>
+    </div>
+    <div class="agents">Claude Code · Codex · OpenCode · Gemini · Cursor</div>
+  </div>
+  <div class="cmd"><b>$</b> npx -y github:kennedy122112/bizagi-steroids setup</div>
+
+  <div class="right">
+    <div class="bubble">
+      <div class="who">Tú, en el chat</div>
+      "Modela la atención de reclamos: mesa de partes registra, el área evalúa en 30 días; a los 10 sin respuesta se alerta a jefatura…"
+    </div>
+    <div class="arrow">tu agente de IA</div>
+    <div class="shot">
+      <div class="bar"><span class="dot" style="background:#f87171"></span><span class="dot" style="background:#fbbf24"></span><span class="dot" style="background:#4ade80"></span>&nbsp;Bizagi Modeler · importado</div>
+      <img src="../bizagi-reclamos.jpg" alt="">
+      <div class="files"><span class="file"><i>.bpmn</i> para Bizagi</span><span class="file"><i>.docx</i> documentado</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
