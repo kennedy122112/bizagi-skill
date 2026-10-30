@@ -299,9 +299,10 @@ Solo usa la biblioteca estándar de Python 3.9+. El formato de la spec y las reg
 | `.claude-plugin/`, `.agents/plugins/`, `.cursor-plugin/` | Manifiestos de plugin |
 | `examples/`, `docs/`, `tests/` | Ejemplos, imágenes y documentos de muestra, y casos de prueba |
 
-## 🔗 Proyecto hermano
+## 🔗 Proyectos hermanos
 
-[**figma-steroids**](https://github.com/kennedy122112/figma-steroids): diseña en Figma Desktop desde tu agente de IA, sin API key ni MCP.
+- [**figma-steroids**](https://github.com/kennedy122112/figma-steroids): diseña en Figma Desktop desde tu agente de IA, sin API key ni MCP.
+- [**ps-steroids**](https://github.com/kennedy122112/ps-steroids): diseña piezas gráficas por capas en Adobe Photoshop desde tu agente de IA, a partir de tu idea o tus fotos.
 
 ## 📄 Licencia
 

@@ -299,9 +299,10 @@ It only uses the Python 3.9+ standard library. The spec format and the modeling 
 | `.claude-plugin/`, `.agents/plugins/`, `.cursor-plugin/` | Plugin manifests |
 | `examples/`, `docs/`, `tests/` | Examples, sample images and documents, and test cases |
 
-## 🔗 Sibling project
+## 🔗 Sibling projects
 
-[**figma-steroids**](https://github.com/kennedy122112/figma-steroids): design in Figma Desktop from your AI agent, with no API key and no MCP.
+- [**figma-steroids**](https://github.com/kennedy122112/figma-steroids): design in Figma Desktop from your AI agent, with no API key and no MCP.
+- [**ps-steroids**](https://github.com/kennedy122112/ps-steroids): design layered graphics in Adobe Photoshop from your AI agent, starting from your idea or your photos.
 
 ## 📄 License
 
