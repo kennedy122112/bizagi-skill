@@ -301,7 +301,9 @@ Solo usa la biblioteca estándar de Python 3.9+. El formato de la spec y las reg
 
 ## 🔗 Proyectos hermanos
 
+- [**ea-steroids**](https://github.com/kennedy122112/ea-steroids): modela arquitectura en Enterprise Architect desde tu agente de IA.
 - [**figma-steroids**](https://github.com/kennedy122112/figma-steroids): diseña en Figma Desktop desde tu agente de IA, sin API key ni MCP.
+- [**blender-steroids**](https://github.com/kennedy122112/blender-steroids): modela escenas 3D en Blender desde tu agente de IA.
 - [**ps-steroids**](https://github.com/kennedy122112/ps-steroids): diseña piezas gráficas por capas en Adobe Photoshop desde tu agente de IA, a partir de tu idea o tus fotos.
 
 ## 📄 Licencia

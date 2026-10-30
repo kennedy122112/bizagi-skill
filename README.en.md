@@ -301,7 +301,9 @@ It only uses the Python 3.9+ standard library. The spec format and the modeling 
 
 ## 🔗 Sibling projects
 
+- [**ea-steroids**](https://github.com/kennedy122112/ea-steroids): model architecture in Enterprise Architect from your AI agent.
 - [**figma-steroids**](https://github.com/kennedy122112/figma-steroids): design in Figma Desktop from your AI agent, with no API key and no MCP.
+- [**blender-steroids**](https://github.com/kennedy122112/blender-steroids): model 3D scenes in Blender from your AI agent.
 - [**ps-steroids**](https://github.com/kennedy122112/ps-steroids): design layered graphics in Adobe Photoshop from your AI agent, starting from your idea or your photos.
 
 ## 📄 License
